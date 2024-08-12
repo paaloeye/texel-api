@@ -4,10 +4,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-package main
+package project
 
-import "github.com/pbrit/texel-api/pkg/app"
-
-func main() {
-	app.ConfigureAppAndRun()
+type Project struct {
+	ID string `uri:"project_id" binding:"required,uuid"`
 }
