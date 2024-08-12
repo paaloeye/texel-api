@@ -4,10 +4,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-package main
+package logger
 
-import "github.com/pbrit/texel-api/pkg/app"
+import (
+	"github.com/gin-gonic/gin"
+	"github.com/go-logr/logr"
+)
 
-func main() {
-	app.ConfigureAppAndRun()
+// TODO: DocString
+func FromContext(gctx *gin.Context) logr.Logger {
+	return gctx.MustGet("log").(logr.Logger)
 }

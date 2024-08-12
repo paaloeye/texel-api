@@ -4,10 +4,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-package main
+package errors
 
-import "github.com/pbrit/texel-api/pkg/app"
+import "errors"
 
-func main() {
-	app.ConfigureAppAndRun()
-}
+var (
+	ErrInternalServer = errors.New("InternalServerError")
+)
