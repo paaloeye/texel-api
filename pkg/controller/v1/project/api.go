@@ -13,6 +13,7 @@ import (
 
 	ginAPI "github.com/gin-gonic/gin"
 	"github.com/go-logr/logr"
+	"github.com/pbrit/texel-api/pkg/construction"
 	"github.com/pbrit/texel-api/pkg/logger"
 	"github.com/pbrit/texel-api/pkg/mnemosyne"
 
@@ -22,8 +23,11 @@ import (
 type ContextKey string
 
 const (
-	ctxKeyLogger ContextKey = `looger` // type: logr.Logger
-	ctxKeyGin    ContextKey = `gin`    // type: *gin.Context
+	ctxKeyLogger           ContextKey = `looger`  // type: logr.Logger
+	ctxKeyGin              ContextKey = `gin`     // type: *gin.Context
+	ctxKeyDesignRuleEngine ContextKey = `dre`     // type: *construction.DesignRuleEngine
+	ctxKeyProject          ContextKey = `project` // type: Project
+	ctxKeyModel            ContextKey = `model`   // type: *mnemosyne.Mnemosyne
 )
 
 func Register(ginRouter *ginAPI.RouterGroup) {
@@ -59,14 +63,10 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 		gin.JSON(http.StatusOK, ginAPI.H{"data": *geoJsonObj})
 	})
 	api.PATCH("/building_limits", func(gin *ginAPI.Context) {
-		log := logger.FromContext(gin)
-		project := gin.MustGet("project").(Project)
-		model := gin.MustGet("model").(*mnemosyne.Mnemosyne)
-
-		// Context business logic
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, ctxKeyLogger, log)
-		ctx = context.WithValue(ctx, ctxKeyGin, gin)
+		ctx := makeUpdateContext(gin)
+		project := ctx.Value(ctxKeyProject).(Project)
+		model := ctx.Value(ctxKeyModel).(*mnemosyne.Mnemosyne)
+		dre := ctx.Value(ctxKeyDesignRuleEngine).(*construction.DesignRuleEngine)
 
 		body, err := io.ReadAll(gin.Request.Body)
 		if ok := handleInternalServerError(ctx, err); !ok {
@@ -74,17 +74,20 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 		}
 
 		// Make sure it's a well-formatted GeoJSON Object
-		geoJsonBody, err := geojson.UnmarshalFeatureCollection(body)
+		featureCollectionRequest, err := geojson.UnmarshalFeatureCollection(body)
 		if ok := handleInternalServerError(ctx, err); !ok {
 			return
 		}
 
-		geoJson, err := geoJsonBody.MarshalJSON()
+		// Check design rules
+		warnCollection, errCollection, err := dre.Validate(ctx, featureCollectionRequest, featureCollectionComplementary)
+
+		// Serialize errors and warnings
+
+		geoJson, err := featureCollectionRequest.MarshalJSON()
 		if ok := handleInternalServerError(ctx, err); !ok {
 			return
 		}
-
-		// TODO: Check design rules
 
 		err = model.UpdateBuildingLimits(project.ID, string(geoJson[:]))
 		if ok := handleInternalServerError(ctx, err); !ok {
@@ -92,7 +95,7 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 		}
 
 		gin.JSON(http.StatusOK, ginAPI.H{
-			"data": *geoJsonBody,
+			"data": *featureCollectionRequest,
 		})
 	})
 
@@ -124,14 +127,9 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 	})
 
 	api.PATCH("/height_plateaus", func(gin *ginAPI.Context) {
-		log := logger.FromContext(gin)
-		project := gin.MustGet("project").(Project)
-		model := gin.MustGet("model").(*mnemosyne.Mnemosyne)
-
-		// Context business logic
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, ctxKeyLogger, log)
-		ctx = context.WithValue(ctx, ctxKeyGin, gin)
+		ctx := makeUpdateContext(gin)
+		project := ctx.Value(ctxKeyProject).(Project)
+		model := ctx.Value(ctxKeyModel).(*mnemosyne.Mnemosyne)
 
 		body, err := io.ReadAll(gin.Request.Body)
 		if ok := handleInternalServerError(ctx, err); !ok {
@@ -261,4 +259,21 @@ func projectIDMiddleware(gin *ginAPI.Context) {
 	gin.Set("log", log.WithValues("project-id", project.ID))
 
 	gin.Next()
+}
+
+func makeUpdateContext(gin *ginAPI.Context) context.Context {
+	log := logger.FromContext(gin)
+	project := gin.MustGet("project").(Project)
+	model := gin.MustGet("model").(*mnemosyne.Mnemosyne)
+	dre := construction.NewDesignRuleEngine()
+
+	// Context business logic
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, ctxKeyLogger, log)
+	ctx = context.WithValue(ctx, ctxKeyGin, gin)
+	ctx = context.WithValue(ctx, ctxKeyProject, project)
+	ctx = context.WithValue(ctx, ctxKeyModel, model)
+	ctx = context.WithValue(ctx, ctxKeyDesignRuleEngine, dre)
+
+	return ctx
 }

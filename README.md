@@ -25,7 +25,7 @@ We expect that the following binaries are available in your `PATH`.
 Configured **CGO** is required for [go-sqlite3](https://github.com/mattn/go-sqlite3?tab=readme-ov-file#installation).
 
 
-## A tour Texel
+## A Tour of Texel
 
   Components:
   - app
@@ -57,7 +57,6 @@ Configured **CGO** is required for [go-sqlite3](https://github.com/mattn/go-sqli
   - https://github.com/uber-go/zap
 
 
-
 ## Progress
 
   - [x] Gin setup
@@ -72,7 +71,7 @@ Configured **CGO** is required for [go-sqlite3](https://github.com/mattn/go-sqli
   - [x] [fix database is locked](https://www2.sqlite.org/cvstrac/wiki?p=DatabaseIsLocked)
   - [x] feat(mnemosyne): implement `updateObject`
   - [x] PATCH height_plateaux
-  - [ ] feat(design-rules-engine): implementation
+  - [?] feat(design-rules-engine): implementation
   - [ ] feat(design-rules-engine): unit tests
   - [ ] chore(controller): refactoring
   - [ ] docs: readme
@@ -88,8 +87,12 @@ Configured **CGO** is required for [go-sqlite3](https://github.com/mattn/go-sqli
   - [ ] *** Release 0.1.0 version ****
   - [ ] Database timeout via `context.Context`
   - [ ] Add CLI and ENV configuration routines
-  - [ ] Dependency injection
   - [ ] feat(logging): production ready
+  - [ ] feat(deployment): dockerfile
+  - [ ] feat(deployment): google cloud run
+  - [ ] *** Release 0.2.0 version ****
+  - [ ] feat(deployment): aws faregate
+  - [ ] feat: dependency injection
 
 ## Contribution
 
