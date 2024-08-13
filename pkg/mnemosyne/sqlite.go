@@ -11,8 +11,10 @@
 package mnemosyne
 
 import (
+	"context"
 	"database/sql"
 	"os"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 
@@ -66,6 +68,12 @@ const (
 		LIMIT 1
 	`
 
+	updateHeightPlateauxQuery = `
+		-- Upsert
+		INSERT INTO height_plateaux(project_id,data) VALUES(:project_id, :data)
+  		ON CONFLICT(project_id) DO UPDATE SET data=excluded.data;
+	`
+
 	getSplitBuildingLimits = `
 		SELECT data
 		FROM split_building_limits
@@ -93,7 +101,7 @@ func New(log logr.Logger) *Mnemosyne {
 
 	mnemosyne.db.SetMaxIdleConns(50)
 	mnemosyne.db.SetMaxOpenConns(50)
-	mnemosyne.db.SetMaxOpenConns(50)
+	mnemosyne.db.SetMaxOpenConns(10)
 
 	if err != nil {
 		log.Error(err, "failed to open the database")
@@ -116,37 +124,18 @@ func (m *Mnemosyne) GetBuildingLimits(projectID string) (string, error) {
 	return m.getObject(projectID, getBuildingLimitsQuery)
 }
 
-func (m *Mnemosyne) UpdateBuildingLimits(projectID string, geoJSONData string) (err error) {
-	tx, err := m.db.Begin()
-	if err != nil {
-		m.log.Error(err, "failed to start the transaction")
-		return err
-	}
-
-	stmt, err := tx.Prepare(updateBuildingLimitsQuery)
-	if err != nil {
-		m.log.Error(err, "failed to prepare the SQL statement")
-		return err
-	}
-	defer stmt.Close()
-
-	if _, err = stmt.Exec(sql.Named("project_id", projectID), sql.Named("data", geoJSONData)); err != nil {
-		m.log.Error(err, "failed to update the building limits")
-		return err
-	}
-
-	if err = tx.Commit(); err != nil {
-		m.log.Error(err, "failed to commit the transaction")
-		return err
-	}
-
-	return nil
+func (m *Mnemosyne) UpdateBuildingLimits(projectID string, data string) (err error) {
+	return m.updateObject(projectID, updateBuildingLimitsQuery, data)
 }
 
 // MARK: Height plateaux
 
 func (m *Mnemosyne) GetHeightPlateaux(projectID string) (string, error) {
 	return m.getObject(projectID, getHeightPlateauxQuery)
+}
+
+func (m *Mnemosyne) UpdateHeightPlateaux(projectID string, data string) (err error) {
+	return m.updateObject(projectID, updateHeightPlateauxQuery, data)
 }
 
 // MARK: Split height plateaux
@@ -158,19 +147,21 @@ func (m *Mnemosyne) GetSplitBuildingLimits(projectID string) (string, error) {
 // MARK: Private API
 
 func (m *Mnemosyne) getObject(projectID string, sqlQuery string) (objectData string, err error) {
-	tx, err := m.db.Begin()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		m.log.Error(err, "failed to start the transaction")
 		return "", err
 	}
 
-	stmt, err := tx.Prepare(sqlQuery)
+	stmt, err := tx.PrepareContext(ctx, sqlQuery)
 	if err != nil {
 		m.log.Error(err, "failed to prepare the SQL statement")
 	}
-	defer stmt.Close()
 
-	if err = stmt.QueryRow(sql.Named("project_id", projectID)).Scan(&objectData); err != nil {
+	if err = stmt.QueryRowContext(ctx, sql.Named("project_id", projectID)).Scan(&objectData); err != nil {
 		if err == sql.ErrNoRows {
 			// The project doesn't have any building limits yet
 			return "", ErrNotFound
@@ -185,6 +176,33 @@ func (m *Mnemosyne) getObject(projectID string, sqlQuery string) (objectData str
 	}
 
 	return
+}
+
+func (m *Mnemosyne) updateObject(projectID string, sqlQuery string, data string) (err error) {
+	tx, err := m.db.Begin()
+	if err != nil {
+		m.log.Error(err, "failed to start the transaction")
+		return err
+	}
+
+	stmt, err := tx.Prepare(sqlQuery)
+	if err != nil {
+		m.log.Error(err, "failed to prepare the SQL statement")
+		return err
+	}
+	defer stmt.Close()
+
+	if _, err = stmt.Exec(sql.Named("project_id", projectID), sql.Named("data", data)); err != nil {
+		m.log.Error(err, "failed to update the building limits")
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		m.log.Error(err, "failed to commit the transaction")
+		return err
+	}
+
+	return nil
 }
 
 // Home-made destructor. Inspired by Rust.
