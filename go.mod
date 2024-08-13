@@ -6,9 +6,12 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-logr/logr v1.3.0
 	github.com/go-logr/zapr v1.3.0
+	github.com/paulmach/orb v0.11.1
 	github.com/swaggo/swag v1.16.3
 	go.uber.org/zap v1.26.0
 )
+
+require go.mongodb.org/mongo-driver v1.11.4 // indirect
 
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect

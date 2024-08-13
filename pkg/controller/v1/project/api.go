@@ -7,56 +7,222 @@
 package project
 
 import (
+	"context"
+	"io"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
-	"github.com/pbrit/texel-api/pkg/app"
+	ginAPI "github.com/gin-gonic/gin"
+	"github.com/go-logr/logr"
 	"github.com/pbrit/texel-api/pkg/logger"
+	"github.com/pbrit/texel-api/pkg/mnemosyne"
+
+	"github.com/paulmach/orb/geojson"
 )
 
-func Register(ginRouter *gin.RouterGroup) {
+type ContextKey string
+
+const (
+	ctxKeyLogger ContextKey = `looger` // type: logr.Logger
+	ctxKeyGin    ContextKey = `gin`    // type: *gin.Context
+)
+
+func Register(ginRouter *ginAPI.RouterGroup) {
 	api := ginRouter.Group("/projects/:project_id")
 
 	// Bind project ID
 	api.Use(projectIDMiddleware)
 
-	// * Object: building_limits
-	//   Methods: PUT, GET
-	api.GET("/building_limits", func(gctx *gin.Context) {
-		log := logger.FromContext(gctx)
-		project := gctx.MustGet("project").(Project)
-		app := gctx.MustGet("app").(*app.App)
+	api.GET("/building_limits", func(gin *ginAPI.Context) {
+		log := logger.FromContext(gin)
+		project := gin.MustGet("project").(Project)
+		model := gin.MustGet("model").(*mnemosyne.Mnemosyne)
 
-		buildingLimits, err := app.Mnemosyne.GetBuildingLimits()
+		// Context business logic
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, ctxKeyLogger, log)
+		ctx = context.WithValue(ctx, ctxKeyGin, gin)
 
-		gctx.JSON(http.StatusOK, gin.H{"projectUUID": project.ID})
+		buildingLimits, err := model.GetBuildingLimits(project.ID)
 
+		if ok := handleNotFound(ctx, err); !ok {
+			return
+		}
+
+		log.V(4).Info("building limits found", "object", buildingLimits)
+
+		// Make sure it's a well-formatted GeoJSON Object
+		geoJsonObj, err := geojson.UnmarshalFeatureCollection([]byte(buildingLimits))
+		if ok := handleInternalServerError(ctx, err); !ok {
+			return
+		}
+
+		gin.JSON(http.StatusOK, ginAPI.H{"data": *geoJsonObj})
 	})
-	api.PUT("/building_limits", func(g *gin.Context) { g.JSON(http.StatusOK, "helloworld") })
+	api.PATCH("/building_limits", func(gin *ginAPI.Context) {
+		log := logger.FromContext(gin)
+		project := gin.MustGet("project").(Project)
+		model := gin.MustGet("model").(*mnemosyne.Mnemosyne)
 
-	// * Object: height_plateaus
-	//   Methods: PUT, GET
-	api.GET("/height_plateaus", func(g *gin.Context) { g.JSON(http.StatusOK, "helloworld") })
-	api.PUT("/height_plateaus", func(g *gin.Context) { g.JSON(http.StatusOK, "helloworld") })
+		// Context business logic
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, ctxKeyLogger, log)
+		ctx = context.WithValue(ctx, ctxKeyGin, gin)
 
-	// * Object: split_building_limits
-	//   Methods: GET
-	api.GET("/split_building_limits", func(g *gin.Context) { g.JSON(http.StatusOK, "helloworld") })
+		body, err := io.ReadAll(gin.Request.Body)
+		if ok := handleInternalServerError(ctx, err); !ok {
+			return
+		}
+
+		// Make sure it's a well-formatted GeoJSON Object
+		geoJsonBody, err := geojson.UnmarshalFeatureCollection(body)
+		if ok := handleInternalServerError(ctx, err); !ok {
+			return
+		}
+
+		geoJson, err := geoJsonBody.MarshalJSON()
+		if ok := handleInternalServerError(ctx, err); !ok {
+			return
+		}
+
+		// TODO: Check design rules
+
+		err = model.UpdateBuildingLimits(project.ID, string(geoJson[:]))
+		if ok := handleInternalServerError(ctx, err); !ok {
+			return
+		}
+
+		gin.JSON(http.StatusOK, ginAPI.H{
+			"data": *geoJsonBody,
+		})
+	})
+
+	api.GET("/height_plateaus", func(gin *ginAPI.Context) {
+		log := logger.FromContext(gin)
+		project := gin.MustGet("project").(Project)
+		model := gin.MustGet("model").(*mnemosyne.Mnemosyne)
+
+		// Context business logic
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, ctxKeyLogger, log)
+		ctx = context.WithValue(ctx, ctxKeyGin, gin)
+
+		heightPlateaux, err := model.GetHeightPlateaux(project.ID)
+
+		if ok := handleNotFound(ctx, err); !ok {
+			return
+		}
+
+		log.V(4).Info("height plateaux found", "object", heightPlateaux)
+
+		// Make sure it's a well-formatted GeoJSON Object
+		geoJsonObj, err := geojson.UnmarshalFeatureCollection([]byte(heightPlateaux))
+		if ok := handleInternalServerError(ctx, err); !ok {
+			return
+		}
+
+		gin.JSON(http.StatusOK, ginAPI.H{"data": *geoJsonObj})
+	})
+
+	api.PATCH("/height_plateaus", func(gin *ginAPI.Context) { gin.JSON(http.StatusOK, "helloworld") })
+
+	api.GET("/split_building_limits", func(gin *ginAPI.Context) {
+		log := logger.FromContext(gin)
+		project := gin.MustGet("project").(Project)
+		model := gin.MustGet("model").(*mnemosyne.Mnemosyne)
+
+		// Context business logic
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, ctxKeyLogger, log)
+		ctx = context.WithValue(ctx, ctxKeyGin, gin)
+
+		split_building_limits, err := model.GetSplitBuildingLimits(project.ID)
+
+		if ok := handleNotFound(ctx, err); !ok {
+			return
+		}
+
+		log.V(4).Info("split building limits found", "object", split_building_limits)
+
+		// Make sure it's a well-formatted GeoJSON Object
+		geoJsonObj, err := geojson.UnmarshalFeatureCollection([]byte(split_building_limits))
+		if ok := handleInternalServerError(ctx, err); !ok {
+			return
+		}
+
+		gin.JSON(http.StatusOK, ginAPI.H{"data": *geoJsonObj})
+	})
 }
 
-func projectIDMiddleware(gctx *gin.Context) {
+// MARK: Private API
+
+// Error handling
+
+/*
+ * @summary Handles internal server errors and logs the error to the logger.
+ * @param ctx The context of the request.
+ * @param err The error that occurred.
+ * @return A boolean indicating whether the error was handled or not.
+ */
+func handleInternalServerError(ctx context.Context, err error) bool {
+	log := ctx.Value(ctxKeyLogger).(logr.Logger)
+	gin := ctx.Value(ctxKeyGin).(*ginAPI.Context)
+
+	if err != nil {
+		log.Error(err, "failed to get the model")
+		gin.JSON(http.StatusInternalServerError, ginAPI.H{
+			"error": ginAPI.H{
+				"code":    http.StatusInternalServerError,
+				"message": err.Error(),
+			},
+		})
+
+		return false
+	}
+
+	return true
+}
+
+/**
+ * @summary Handles not found errors and logs the error to the logger.
+ * @param ctx The context of the request.
+ * @param err The error that occurred.
+ * @return A boolean indicating whether the error was handled or not.
+ */
+func handleNotFound(ctx context.Context, err error) bool {
+	log := ctx.Value(ctxKeyLogger).(logr.Logger)
+	gin := ctx.Value(ctxKeyGin).(*ginAPI.Context)
+
+	if err == nil {
+		return true
+	}
+
+	// Filter ErrNotFound first
+	if err == mnemosyne.ErrNotFound {
+		log.V(3).Info("object not found")
+
+		gin.JSON(http.StatusOK, ginAPI.H{})
+		return false
+	}
+
+	// Some other error occurred
+	return handleInternalServerError(ctx, err)
+}
+
+// MARK: Middlewares
+
+func projectIDMiddleware(gin *ginAPI.Context) {
 	var project Project
 
-	log := logger.FromContext(gctx)
+	log := logger.FromContext(gin)
 
-	err := gctx.ShouldBindUri(&project)
+	err := gin.ShouldBindUri(&project)
 	if err != nil {
-		gctx.JSON(400, gin.H{"msg": "bla"})
+		gin.JSON(400, ginAPI.H{"msg": "bla"})
 		return
 	}
 
-	gctx.Set("project", project)
-	gctx.Set("log", log.WithValues("project-id", project.ID))
+	gin.Set("project", project)
+	gin.Set("log", log.WithValues("project-id", project.ID))
 
-	gctx.Next()
+	gin.Next()
 }
