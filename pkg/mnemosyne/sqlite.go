@@ -30,7 +30,7 @@ const (
 			FOREIGN KEY(project_id) REFERENCES projects(id)
 		);
 
-		CREATE TABLE height_plateaus (
+		CREATE TABLE height_plateaux (
 			project_id UUID PRIMARY KEY,
 			data JSON,
 			FOREIGN KEY(project_id) REFERENCES projects(id)
@@ -47,9 +47,29 @@ const (
 	`
 
 	getBuildingLimitsQuery = `
-		SELECT *
+		SELECT data
 		FROM building_limits
-		WHERE project_id = ?
+		WHERE project_id = :project_id
+		LIMIT 1
+	`
+
+	updateBuildingLimitsQuery = `
+		-- Upsert
+		INSERT INTO building_limits(project_id,data) VALUES(:project_id, :data)
+  		ON CONFLICT(project_id) DO UPDATE SET data=excluded.data;
+	`
+
+	getHeightPlateauxQuery = `
+		SELECT data
+		FROM height_plateaux
+		WHERE project_id = :project_id
+		LIMIT 1
+	`
+
+	getSplitBuildingLimits = `
+		SELECT data
+		FROM split_building_limits
+		WHERE project_id = :project_id
 		LIMIT 1
 	`
 )
@@ -71,11 +91,14 @@ func New(log logr.Logger) *Mnemosyne {
 
 	mnemosyne.db, err = sql.Open("sqlite3", databasePath)
 
+	mnemosyne.db.SetMaxIdleConns(50)
+	mnemosyne.db.SetMaxOpenConns(50)
+	mnemosyne.db.SetMaxOpenConns(50)
+
 	if err != nil {
 		log.Error(err, "failed to open the database")
 		panic(err)
 	}
-	defer mnemosyne.db.Close()
 
 	// Load the schema
 	if _, err = mnemosyne.db.Exec(scheme); err != nil {
@@ -87,6 +110,85 @@ func New(log logr.Logger) *Mnemosyne {
 	return &mnemosyne
 }
 
-func (m *Mnemosyne) GetBuildingLimits() (building_limits any, err error) {
-	m.db.Query()
+// MARK: Building Limits
+
+func (m *Mnemosyne) GetBuildingLimits(projectID string) (string, error) {
+	return m.getObject(projectID, getBuildingLimitsQuery)
+}
+
+func (m *Mnemosyne) UpdateBuildingLimits(projectID string, geoJSONData string) (err error) {
+	tx, err := m.db.Begin()
+	if err != nil {
+		m.log.Error(err, "failed to start the transaction")
+		return err
+	}
+
+	stmt, err := tx.Prepare(updateBuildingLimitsQuery)
+	if err != nil {
+		m.log.Error(err, "failed to prepare the SQL statement")
+		return err
+	}
+	defer stmt.Close()
+
+	if _, err = stmt.Exec(sql.Named("project_id", projectID), sql.Named("data", geoJSONData)); err != nil {
+		m.log.Error(err, "failed to update the building limits")
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		m.log.Error(err, "failed to commit the transaction")
+		return err
+	}
+
+	return nil
+}
+
+// MARK: Height plateaux
+
+func (m *Mnemosyne) GetHeightPlateaux(projectID string) (string, error) {
+	return m.getObject(projectID, getHeightPlateauxQuery)
+}
+
+// MARK: Split height plateaux
+
+func (m *Mnemosyne) GetSplitBuildingLimits(projectID string) (string, error) {
+	return m.getObject(projectID, getSplitBuildingLimits)
+}
+
+// MARK: Private API
+
+func (m *Mnemosyne) getObject(projectID string, sqlQuery string) (objectData string, err error) {
+	tx, err := m.db.Begin()
+	if err != nil {
+		m.log.Error(err, "failed to start the transaction")
+		return "", err
+	}
+
+	stmt, err := tx.Prepare(sqlQuery)
+	if err != nil {
+		m.log.Error(err, "failed to prepare the SQL statement")
+	}
+	defer stmt.Close()
+
+	if err = stmt.QueryRow(sql.Named("project_id", projectID)).Scan(&objectData); err != nil {
+		if err == sql.ErrNoRows {
+			// The project doesn't have any building limits yet
+			return "", ErrNotFound
+		}
+
+		return "", err
+	}
+
+	if err = tx.Commit(); err != nil {
+		m.log.Error(err, "failed to commit the transaction")
+		return "", err
+	}
+
+	return
+}
+
+// Home-made destructor. Inspired by Rust.
+// Ref: https://rust-unofficial.github.io/patterns/idioms/dtor-finally.html
+func (m *Mnemosyne) Drop() {
+	m.db.Close()
 }

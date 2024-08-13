@@ -46,11 +46,12 @@ func ConfigureAppAndRun() {
 
 	// Configure persistance layer
 	app.Mnemosyne = mnemosyne.New(log)
+	defer app.Mnemosyne.Drop()
 
 	// Configure all required middlewares
 	app.gin.Use(middleware.Logging(app.zap))
 	app.gin.Use(gin.Recovery())
-	app.gin.Use(appMiddleware(app))
+	app.gin.Use(modelMiddleware(app))
 
 	projectControllerV1.Register(app.gin.Group("/v1"))
 	// projectControllerV2.Register(app.gin.Group("/v2"))
@@ -65,9 +66,9 @@ func ConfigureAppAndRun() {
 	// Finish the app peacefully
 }
 
-func appMiddleware(app *App) gin.HandlerFunc {
+func modelMiddleware(app *App) gin.HandlerFunc {
 	return func(gctx *gin.Context) {
-		gctx.Set("app", app)
+		gctx.Set("model", app.Mnemosyne)
 		gctx.Next()
 	}
 }
