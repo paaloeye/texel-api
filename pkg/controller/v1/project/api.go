@@ -123,7 +123,43 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 		gin.JSON(http.StatusOK, ginAPI.H{"data": *geoJsonObj})
 	})
 
-	api.PATCH("/height_plateaus", func(gin *ginAPI.Context) { gin.JSON(http.StatusOK, "helloworld") })
+	api.PATCH("/height_plateaus", func(gin *ginAPI.Context) {
+		log := logger.FromContext(gin)
+		project := gin.MustGet("project").(Project)
+		model := gin.MustGet("model").(*mnemosyne.Mnemosyne)
+
+		// Context business logic
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, ctxKeyLogger, log)
+		ctx = context.WithValue(ctx, ctxKeyGin, gin)
+
+		body, err := io.ReadAll(gin.Request.Body)
+		if ok := handleInternalServerError(ctx, err); !ok {
+			return
+		}
+
+		// Make sure it's a well-formatted GeoJSON Object
+		geoJsonBody, err := geojson.UnmarshalFeatureCollection(body)
+		if ok := handleInternalServerError(ctx, err); !ok {
+			return
+		}
+
+		geoJson, err := geoJsonBody.MarshalJSON()
+		if ok := handleInternalServerError(ctx, err); !ok {
+			return
+		}
+
+		// TODO: Check design rules
+
+		err = model.UpdateHeightPlateaux(project.ID, string(geoJson[:]))
+		if ok := handleInternalServerError(ctx, err); !ok {
+			return
+		}
+
+		gin.JSON(http.StatusOK, ginAPI.H{
+			"data": *geoJsonBody,
+		})
+	})
 
 	api.GET("/split_building_limits", func(gin *ginAPI.Context) {
 		log := logger.FromContext(gin)

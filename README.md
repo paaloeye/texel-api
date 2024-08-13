@@ -40,6 +40,7 @@ Configured **CGO** is required for [go-sqlite3](https://github.com/mattn/go-sqli
     - curl -v --data @data/building_limits.geojson -X PATCH http://localhost:8080/v1/projects/feedface-cafe-beef-feed-facecafebeef/building_limits | jq .
 
     - curl -v http://localhost:8080/v1/projects/feedface-cafe-beef-feed-facecafebeef/height_plateaus | jq .
+    - curl -v --data @data/height_plateaux.geojson -X PATCH http://localhost:8080/v1/projects/feedface-cafe-beef-feed-facecafebeef/height_plateaus | jq .
 
     - curl -v http://localhost:8080/v1/projects/feedface-cafe-beef-feed-facecafebeef/split_building_limits | jq .
 
@@ -67,8 +68,16 @@ Configured **CGO** is required for [go-sqlite3](https://github.com/mattn/go-sqli
   - [x] GET height_plateaux
   - [x] PATCH building_limits
   - [x] PATCH height_plateaux
-  - [?] GET split_building_limits
-  - [ ] [Fix "database is locked"](https://www2.sqlite.org/cvstrac/wiki?p=DatabaseIsLocked)
+  - [x] GET split_building_limits
+  - [x] [fix database is locked](https://www2.sqlite.org/cvstrac/wiki?p=DatabaseIsLocked)
+  - [x] feat(mnemosyne): implement `updateObject`
+  - [x] PATCH height_plateaux
+  - [ ] feat(design-rules-engine): implementation
+  - [ ] feat(design-rules-engine): unit tests
+  - [ ] chore(controller): refactoring
+  - [ ] docs: readme
+  - [ ] *** Release 0.1.0.pre1 version ****
+  - [ ] feat(controller): concurrent update
   - [ ] Handle `ErrProjectNotFound` error
   - [ ] OpenAPI Specification
   - [ ] Postman
@@ -80,6 +89,7 @@ Configured **CGO** is required for [go-sqlite3](https://github.com/mattn/go-sqli
   - [ ] Database timeout via `context.Context`
   - [ ] Add CLI and ENV configuration routines
   - [ ] Dependency injection
+  - [ ] feat(logging): production ready
 
 ## Contribution
 
