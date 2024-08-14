@@ -70,7 +70,7 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 		project := ctx.Value(ctxKeyProject).(Project)
 		model := ctx.Value(ctxKeyModel).(*mnemosyne.Mnemosyne)
 		dre := ctx.Value(ctxKeyDesignRuleEngine).(*construction.DesignRuleEngine)
-		log := ctx.Value(ctxKeyLogger).(*logr.Logger)
+		// log := ctx.Value(ctxKeyLogger).(*logr.Logger)
 
 		body, err := io.ReadAll(gin.Request.Body)
 		if ok := handleInternalServerError(ctx, err); !ok {
@@ -83,26 +83,32 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 			return
 		}
 
-		// Fetch complementary feature collection
-		complementaryJsonData, err := model.GetHeightPlateaux(project.ID)
-		notFound, ok := handleNotFound(context.WithValue(ctx, ctxKeyLogger, log.WithValues("object-name", "height-plateaux")), err)
-		if !ok {
+		// Validate the collection
+		if ok, violations := dre.ValidateCollection(featureCollectionRequest); !ok {
+			handleDesignRuleViolations(ctx, violations)
 			return
 		}
 
-		if !notFound {
-			featureCollectionComplementary, err := geojson.UnmarshalFeatureCollection([]byte(complementaryJsonData))
-			if ok := handleInternalServerError(ctx, err); !ok {
-				return
-			}
+		// Fetch complementary feature collection
+		// complementaryJsonData, err := model.GetHeightPlateaux(project.ID)
+		// notFound, ok := handleNotFound(context.WithValue(ctx, ctxKeyLogger, log.WithValues("object-name", "height-plateaux")), err)
+		// if !ok {
+		// 	return
+		// }
 
-			// Check design rules
-			_, _, err = dre.Validate(ctx, featureCollectionRequest, featureCollectionComplementary)
-			if ok := handleInternalServerError(ctx, err); !ok {
-				return
-			}
-			// Serialize errors and warnings if any
-		}
+		// if !notFound {
+		// 	featureCollectionComplementary, err := geojson.UnmarshalFeatureCollection([]byte(complementaryJsonData))
+		// 	if ok := handleInternalServerError(ctx, err); !ok {
+		// 		return
+		// 	}
+
+		// 	// Check design rules
+		// 	_, _, err = dre.Validate(ctx, featureCollectionRequest, featureCollectionComplementary)
+		// 	if ok := handleInternalServerError(ctx, err); !ok {
+		// 		return
+		// 	}
+		// 	// Serialize errors and warnings if any
+		// }
 
 		// Update the model for no errors were found
 		geoJson, err := featureCollectionRequest.MarshalJSON()
@@ -264,6 +270,25 @@ func handleNotFound(ctx context.Context, err error) (notFound bool, ok bool) {
 
 	// Some other error occurred
 	return false, handleInternalServerError(ctx, err)
+}
+
+// Serialize all violations
+func handleDesignRuleViolations(ctx context.Context, violations []error) {
+	// log := ctx.Value(ctxKeyLogger).(logr.Logger)
+	gin := ctx.Value(ctxKeyGin).(*ginAPI.Context)
+
+	errors := []ginAPI.H{}
+	for _, v := range violations {
+		errors = append(errors, ginAPI.H{"reason": v.Error()})
+	}
+
+	gin.JSON(http.StatusUnprocessableEntity, ginAPI.H{
+		"error": ginAPI.H{
+			"code":   http.StatusUnprocessableEntity,
+			"errors": errors,
+		},
+	})
+
 }
 
 // MARK: Middlewares

@@ -34,20 +34,6 @@ Configured **CGO** is required for [go-sqlite3](https://github.com/mattn/go-sqli
   - model: persistence layer(Mnemosyne)
   - construction: business logic
 
-  Smoke tests:
-    - curl -v http://localhost:8080/v1/projects/feedface-cafe-beef-feed-facecafebeef/building_limits | jq .
-
-    - curl -v --data '{"data": {}}' -X PATCH http://localhost:8080/v1/projects/feedface-cafe-beef-feed-facecafebeef/building_limits | jq .
-    - curl -v --data @data/building_limits.geojson -X PATCH http://localhost:8080/v1/projects/feedface-cafe-beef-feed-facecafebeef/building_limits | jq .
-
-    - curl -v http://localhost:8080/v1/projects/feedface-cafe-beef-feed-facecafebeef/height_plateaus | jq .
-    - curl -v --data @data/height_plateaux.geojson -X PATCH http://localhost:8080/v1/projects/feedface-cafe-beef-feed-facecafebeef/height_plateaus | jq .
-
-    - curl -v http://localhost:8080/v1/projects/feedface-cafe-beef-feed-facecafebeef/split_building_limits | jq .
-
-  Stress tests:
-    - hyperfine "curl -v http://localhost:8080/v1/projects/feedface-cafe-beef-feed-facecafebeef/split_building_limits | jq ."
-    - hyperfine -m 100000 'curl -v --data @data/BuildingLimits.geojson -X PATCH http://localhost:8080/v1/projects/feedface-cafe-beef-feed-facecafebeef/building_limits | jq .'
 
 
 ### Logging
@@ -72,10 +58,12 @@ Configured **CGO** is required for [go-sqlite3](https://github.com/mattn/go-sqli
   - [x] [fix database is locked](https://www2.sqlite.org/cvstrac/wiki?p=DatabaseIsLocked)
   - [x] feat(mnemosyne): implement `updateObject`
   - [x] PATCH height_plateaux
-  - [?] feat(design-rules-engine): implementation
-  - [ ] feat(design-rules-engine): unit tests
+  - [?] feat(design-rule-engine): implementation
+  - [?] test(design-rule-engine): integration tests
+  - [ ] test: smoke tests
   - [ ] chore(controller): refactoring
   - [ ] *** Release 0.1.0.pre1 version ****
+  - [ ] test(design-rule-engine): unit tests
   - [ ] feat(controller): concurrent update
   - [ ] Handle `ErrProjectNotFound` error
   - [ ] Grafterm dashboard
@@ -120,3 +108,4 @@ Configured **CGO** is required for [go-sqlite3](https://github.com/mattn/go-sqli
 - [Euclidean Geometry[(https://en.wikipedia.org/wiki/Euclidean_geometry)
   - https://en.wikipedia.org/wiki/Apeirogon
   - https://en.wikipedia.org/wiki/List_of_two-dimensional_geometric_shapes
+  - https://en.wikipedia.org/wiki/Projected_coordinate_system
