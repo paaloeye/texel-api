@@ -36,6 +36,7 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 	// Bind project ID
 	api.Use(projectIDMiddleware)
 
+	// MARK: GET /building_limits
 	api.GET("/building_limits", func(gin *ginAPI.Context) {
 		log := logger.FromContext(gin)
 		project := gin.MustGet("project").(Project)
@@ -48,7 +49,7 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 
 		buildingLimits, err := model.GetBuildingLimits(project.ID)
 
-		if ok := handleNotFound(ctx, err); !ok {
+		if notFound, ok := handleNotFound(ctx, err); !ok || notFound {
 			return
 		}
 
@@ -62,11 +63,14 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 
 		gin.JSON(http.StatusOK, ginAPI.H{"data": *geoJsonObj})
 	})
+
+	// MARK: PATCH /building_limits
 	api.PATCH("/building_limits", func(gin *ginAPI.Context) {
-		ctx := makeUpdateContext(gin)
+		ctx := makeUpdateContext(gin, "object-name", "building_limits")
 		project := ctx.Value(ctxKeyProject).(Project)
 		model := ctx.Value(ctxKeyModel).(*mnemosyne.Mnemosyne)
 		dre := ctx.Value(ctxKeyDesignRuleEngine).(*construction.DesignRuleEngine)
+		log := ctx.Value(ctxKeyLogger).(*logr.Logger)
 
 		body, err := io.ReadAll(gin.Request.Body)
 		if ok := handleInternalServerError(ctx, err); !ok {
@@ -79,11 +83,28 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 			return
 		}
 
-		// Check design rules
-		warnCollection, errCollection, err := dre.Validate(ctx, featureCollectionRequest, featureCollectionComplementary)
+		// Fetch complementary feature collection
+		complementaryJsonData, err := model.GetHeightPlateaux(project.ID)
+		notFound, ok := handleNotFound(context.WithValue(ctx, ctxKeyLogger, log.WithValues("object-name", "height-plateaux")), err)
+		if !ok {
+			return
+		}
 
-		// Serialize errors and warnings
+		if !notFound {
+			featureCollectionComplementary, err := geojson.UnmarshalFeatureCollection([]byte(complementaryJsonData))
+			if ok := handleInternalServerError(ctx, err); !ok {
+				return
+			}
 
+			// Check design rules
+			_, _, err = dre.Validate(ctx, featureCollectionRequest, featureCollectionComplementary)
+			if ok := handleInternalServerError(ctx, err); !ok {
+				return
+			}
+			// Serialize errors and warnings if any
+		}
+
+		// Update the model for no errors were found
 		geoJson, err := featureCollectionRequest.MarshalJSON()
 		if ok := handleInternalServerError(ctx, err); !ok {
 			return
@@ -99,6 +120,7 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 		})
 	})
 
+	// MARK: GET /height_plateaus
 	api.GET("/height_plateaus", func(gin *ginAPI.Context) {
 		log := logger.FromContext(gin)
 		project := gin.MustGet("project").(Project)
@@ -111,7 +133,7 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 
 		heightPlateaux, err := model.GetHeightPlateaux(project.ID)
 
-		if ok := handleNotFound(ctx, err); !ok {
+		if notFound, ok := handleNotFound(ctx, err); !ok || notFound {
 			return
 		}
 
@@ -126,8 +148,9 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 		gin.JSON(http.StatusOK, ginAPI.H{"data": *geoJsonObj})
 	})
 
+	// MARK: PATCH /height_plateaus
 	api.PATCH("/height_plateaus", func(gin *ginAPI.Context) {
-		ctx := makeUpdateContext(gin)
+		ctx := makeUpdateContext(gin, "object-name", "height plateaus")
 		project := ctx.Value(ctxKeyProject).(Project)
 		model := ctx.Value(ctxKeyModel).(*mnemosyne.Mnemosyne)
 
@@ -159,6 +182,7 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 		})
 	})
 
+	// MARK: DELETE /height_plateaus
 	api.GET("/split_building_limits", func(gin *ginAPI.Context) {
 		log := logger.FromContext(gin)
 		project := gin.MustGet("project").(Project)
@@ -171,7 +195,7 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 
 		split_building_limits, err := model.GetSplitBuildingLimits(project.ID)
 
-		if ok := handleNotFound(ctx, err); !ok {
+		if notFound, ok := handleNotFound(ctx, err); !ok || notFound {
 			return
 		}
 
@@ -220,14 +244,14 @@ func handleInternalServerError(ctx context.Context, err error) bool {
  * @summary Handles not found errors and logs the error to the logger.
  * @param ctx The context of the request.
  * @param err The error that occurred.
- * @return A boolean indicating whether the error was handled or not.
+ * @return A boolean indicating whether the error was handled or not, along with a flag indicating whether the object was not found.
  */
-func handleNotFound(ctx context.Context, err error) bool {
+func handleNotFound(ctx context.Context, err error) (notFound bool, ok bool) {
 	log := ctx.Value(ctxKeyLogger).(logr.Logger)
 	gin := ctx.Value(ctxKeyGin).(*ginAPI.Context)
 
 	if err == nil {
-		return true
+		return false, true
 	}
 
 	// Filter ErrNotFound first
@@ -235,11 +259,11 @@ func handleNotFound(ctx context.Context, err error) bool {
 		log.V(3).Info("object not found")
 
 		gin.JSON(http.StatusOK, ginAPI.H{})
-		return false
+		return true, true
 	}
 
 	// Some other error occurred
-	return handleInternalServerError(ctx, err)
+	return false, handleInternalServerError(ctx, err)
 }
 
 // MARK: Middlewares
@@ -261,8 +285,8 @@ func projectIDMiddleware(gin *ginAPI.Context) {
 	gin.Next()
 }
 
-func makeUpdateContext(gin *ginAPI.Context) context.Context {
-	log := logger.FromContext(gin)
+func makeUpdateContext(gin *ginAPI.Context, objectNameKey string, objectNameValue string) context.Context {
+	log := logger.FromContext(gin).WithValues(objectNameKey, objectNameValue)
 	project := gin.MustGet("project").(Project)
 	model := gin.MustGet("model").(*mnemosyne.Mnemosyne)
 	dre := construction.NewDesignRuleEngine()
