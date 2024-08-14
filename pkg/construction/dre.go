@@ -9,7 +9,14 @@ package construction
 import (
 	"context"
 
+	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
+)
+
+const (
+	DesignRuleViolationPOfBound = iota
+	DesignRuleViolationPConflict
+	DesignRuleViolationPCoverage // Warning
 )
 
 type DesignRuleEngine struct {
@@ -24,8 +31,34 @@ func NewDesignRuleEngine() *DesignRuleEngine {
 
 func (dre *DesignRuleEngine) Validate(
 	ctx context.Context,
-	featureCollectionA *geojson.FeatureCollection,
-	featureCollectionB *geojson.FeatureCollection) (warnCollection []DesignRuleViolation, errCollection []DesignRuleViolation, err error) {
+	featureCollectionL *geojson.FeatureCollection,
+	featureCollectionP *geojson.FeatureCollection) (warnCollection []DesignRuleViolation, errCollection []DesignRuleViolation, err error) {
+
+	pSlice := []orb.Bound{}
+	lSlice := []orb.Bound{}
+
+	for _, f := range featureCollectionP.Features {
+		pSlice = append(pSlice, f.Geometry.Bound())
+	}
+
+	for _, f := range featureCollectionL.Features {
+		lSlice = append(lSlice, f.Geometry.Bound())
+	}
+
+	// P
+	intersected := false
+	for i := 0; i < len(pSlice); i++ {
+		for j := i + 1; j < len(pSlice); j++ {
+			intersected = pSlice[i].Intersects(pSlice[j])
+			if intersected {
+				break
+			}
+		}
+
+		if intersected {
+			break
+		}
+	}
 
 	return nil, nil, nil
 }
