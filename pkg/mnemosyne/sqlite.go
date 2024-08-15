@@ -105,6 +105,10 @@ func New(log logr.Logger) *Mnemosyne {
 	return &mnemosyne
 }
 
+func (m *Mnemosyne) PingContext(ctx context.Context) error {
+	return m.db.PingContext(ctx)
+}
+
 // MARK: Building Limits
 
 func (m *Mnemosyne) GetBuildingLimits(projectID string) (string, error) {

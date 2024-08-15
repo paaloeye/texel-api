@@ -6,8 +6,30 @@
 
 package status
 
-import "github.com/gin-gonic/gin"
+import (
+	"context"
+	"net/http"
+	"time"
 
-func Bind(ginRouter *gin.RouterGroup) {
+	ginAPI "github.com/gin-gonic/gin"
+	"github.com/pbrit/texel-api/pkg/mnemosyne"
+)
+
+func Register(ginRouter *ginAPI.RouterGroup) {
+
+	ginRouter.GET("/healthz", func(gin *ginAPI.Context) {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+
+		model := gin.MustGet("model").(*mnemosyne.Mnemosyne)
+
+		err := model.PingContext(ctx)
+		if err != nil {
+			gin.JSON(http.StatusFailedDependency, ginAPI.H{})
+			return
+		}
+
+		gin.JSON(http.StatusOK, ginAPI.H{})
+	})
 
 }
