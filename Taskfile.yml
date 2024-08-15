@@ -1,20 +1,26 @@
+# Ref: https://taskfile.dev/reference/schema
+
 version: '3'
 
 vars:
   API_BASE_URI: "http://localhost:8080/v1/projects/feedface-cafe-beef-feed-facecafebeef"
+  CURL_ARGS: "-v --fail-with-body"
 
 tasks:
   run:
     set: ["e", "u", "x"]
     cmds:
       - go mod tidy
+      - go generate
       - go run -race cmd/main.go
 
   test-integration:
     set: ["e", "u", "x"]
     cmds:
       - |
-        curl -v --data '{wat"data": {}}' -X PATCH "{{ .API_BASE_URI }}/building_limits" | jq .
+
+        # TODO: Fix interpolation error
+        curl -v --data '\{wat"data": \{\}\}' -X PATCH "{{ .API_BASE_URI }}/building_limits" | jq .
 
   # Make sure we don't crash and burn due to something small and stupid
   # test-smoke:
@@ -22,7 +28,7 @@ tasks:
 
   # Test a few API calls with
   test-stress:
-    set: ["e", "u", "x"]
+    set: ["e", "u", "x", "pipefail"]
     cmds:
       # PATCH
       - hyperfine "curl -v --data @testdata/happypath/building_limits.geojson -X PATCH '{{ .API_BASE_URI }}/building_limits' | jq ."
@@ -32,25 +38,34 @@ tasks:
 
   # La Vie En Rose mode
   test-happy-path:
-    set: ["e", "u", "x"]
+    set: ["e", "u", "x", "pipefail"]
     cmds:
       - |
+
         # Test All GETs with pristine DB
-        curl -v "{{ .API_BASE_URI }}/building_limits" | jq .
-        curl -v "{{ .API_BASE_URI }}/split_building_limits" | jq .
-        curl -v "{{ .API_BASE_URI }}/height_plateaus" | jq .
+        curl {{ .CURL_ARGS }} "{{ .API_BASE_URI }}/building_limits" | jq .
+        curl {{ .CURL_ARGS }} "{{ .API_BASE_URI }}/split_building_limits" | jq .
+        curl {{ .CURL_ARGS }} "{{ .API_BASE_URI }}/height_plateaus" | jq .
 
         # Create building limits
-        curl -v -X PATCH --data @testdata/happypath/building_limits.geojson "{{ .API_BASE_URI }}/building_limits" | jq .
+        curl {{ .CURL_ARGS }} -X PATCH --data @testdata/happypath/building_limits.geojson "{{ .API_BASE_URI }}/building_limits" | jq .
 
         # Create height plateaux
-        curl -v -X PATCH --data @testdata/happypath/height_plateaux.geojson "{{ .API_BASE_URI }}/height_plateaus" | jq .
+        curl {{ .CURL_ARGS }} -X PATCH --data @testdata/happypath/height_plateaux.geojson "{{ .API_BASE_URI }}/height_plateaus" | jq .
 
         # Fetch the limits
-        curl -v "{{ .API_BASE_URI }}/split_building_limits" | jq .
+        curl {{ .CURL_ARGS }} "{{ .API_BASE_URI }}/split_building_limits" | jq .
 
-  test-integration-dre-building-limits-intersection:
-    set: ["e", "u", "x"]
+  test-integration-dre-building-limits-overlapped:
+    set: ["e", "u", "x", "pipefail"]
     cmds:
       - |
-        curl -v -X PATCH --data @testdata/dre/err_building_limits_intersection.geojson "{{ .API_BASE_URI }}/building_limits" | jq .
+
+        curl {{ .CURL_ARGS }} -X PATCH --data @testdata/dre/collection/err_overlapped.geojson "{{ .API_BASE_URI }}/building_limits" | jq .
+
+  # test-integration-dre-building-limits-self-intersection:
+  #   set: ["e", "u", "x", "pipefail"]
+  #   cmds:
+  #     - |
+
+  #       curl {{ .CURL_ARGS }} -X PATCH --data @testdata/dre/collection/err_self_intersection.geojson "{{ .API_BASE_URI }}/building_limits" | jq .

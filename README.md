@@ -22,6 +22,7 @@ We expect that the following binaries are available in your `PATH`.
   - [jq](https://stedolan.github.io/jq/)
   - [curl](https://curl.haxx.se/)
   - [hyperfine](https://github.com/sharkdp/hyperfine/)
+  - [stringer](golang.org/x/tools/cmd/stringer@latest)
 
 Configured **CGO** is required for [go-sqlite3](https://github.com/mattn/go-sqlite3?tab=readme-ov-file#installation).
 
@@ -105,6 +106,7 @@ Configured **CGO** is required for [go-sqlite3](https://github.com/mattn/go-sqli
 - https://medium.com/@isuru89/a-better-way-to-implement-http-patch-operation-in-rest-apis-721396ac82bf
 - https://en.wikipedia.org/wiki/Design_rule_checking
 - https://en.wikipedia.org/wiki/GeoJSON
+- https://github.com/paulmach/orb/tree/master/planar
 - [Euclidean Geometry[(https://en.wikipedia.org/wiki/Euclidean_geometry)
   - https://en.wikipedia.org/wiki/Apeirogon
   - https://en.wikipedia.org/wiki/List_of_two-dimensional_geometric_shapes
