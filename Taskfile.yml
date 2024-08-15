@@ -36,7 +36,6 @@ tasks:
 
   test-two-isles:
     set: ["e", "u", "x", "pipefail"]
-    ignore_error: true
     cmds:
       - |
 
@@ -48,6 +47,30 @@ tasks:
 
         # Fetch the limits
         curl {{ .CURL_ARGS }} "{{ .API_BASE_URI }}/split_building_limits" | jq .
+
+  test-two-isles-hyperfine:
+    set: ["e", "u", "x", "pipefail"]
+    cmds:
+      - |
+
+        hyperfine -m 10000 'task test-two-isles'
+
+  healthz-hyperfine:
+    set: ["e", "u", "x", "pipefail"]
+    cmds:
+      - |
+
+        hyperfine -m 10000 'curl {{ .CURL_ARGS }} http://localhost:8080/status/healthz'
+
+  test-concurrency:
+    deps: [
+      test-two-isles-hyperfine,
+      test-two-isles-hyperfine,
+      test-two-isles-hyperfine,
+      test-two-isles-hyperfine,
+      test-two-isles-hyperfine,
+      healthz-hyperfine,
+    ]
 
   test-integration:
     set: ["e", "u", "x", "pipefail"]

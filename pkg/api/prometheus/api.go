@@ -8,6 +8,6 @@ package prometheus
 
 import "github.com/gin-gonic/gin"
 
-func Bind(ginRouter *gin.RouterGroup) {
+func Register(ginRouter *gin.RouterGroup) {
 
 }

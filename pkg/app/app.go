@@ -56,8 +56,8 @@ func ConfigureAppAndRun() {
 	projectControllerV1.Register(app.gin.Group("/v1"))
 	// projectControllerV2.Register(app.gin.Group("/v2"))
 
-	prometheus.Bind(app.gin.Group("/metrics"))
-	status.Bind(app.gin.Group("/status"))
+	prometheus.Register(app.gin.Group("/metrics"))
+	status.Register(app.gin.Group("/status"))
 
 	if err := app.gin.Run(); err != nil {
 		panic(err)

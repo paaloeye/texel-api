@@ -1,0 +1,43 @@
+Vilde: {
+  icon: https://icons.terrastruct.com/aws/_General/Users_light-bg.svg
+  shape: image
+  label: "Vilde"
+}
+
+Daan: {
+  icon: https://icons.terrastruct.com/aws/_General/Users_light-bg.svg
+  shape: image
+  label: "Daan"
+}
+
+texel: {
+  label: Texel
+
+    controller: {
+      label: Controller
+
+    }
+
+    mnemosyne: {
+      label: Mnemosyne
+    }
+
+    dre: {
+      label: Design Rule Engine
+    }
+  }
+
+db: {
+  label: SQLite
+  shape: cylinder
+}
+
+Vilde -> texel.controller: JSON API
+Daan -> texel.controller: JSON API
+
+texel.controller -> texel.mnemosyne: persitency
+
+texel.controller -> texel.dre: GeoJSON
+
+texel.mnemosyne -> db: SQL read & write
+texel.mnemosyne <- db: SQL write

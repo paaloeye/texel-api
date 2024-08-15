@@ -1,8 +1,8 @@
-# Texel API
+# Texel
+
+**Texel** is an **API** for accessing geospacial information written in Go. It provides an extensive **Design Rule Engine** for validating GeoJSON collections.
 
 ## Quickstart
-
-### Run
 
 ```bash
 # Development mode
@@ -12,7 +12,7 @@ task run
 GIN_MODE=release task run
 ```
 
-## Prerequisites
+### Prerequisites
 
 We expect that the following binaries are available in your `PATH`.
 
@@ -29,25 +29,33 @@ Configured **CGO** is required for [go-sqlite3](https://github.com/mattn/go-sqli
 
 ## A Tour of Texel
 
-  Components:
-  - app
-  - controller
-  - model: persistence layer(Mnemosyne)
-  - construction: business logic
+<!-- ![Texel Architecture](docs/images/arch.svg) -->
+<div align="center">
+  <img src="docs/images/arch.svg" width="400px" />
+</div>
 
+### Components
 
+| Name                | Package                                                         | Domain            |
+| ------------------- | --------------------------------------------------------------- | ----------------- |
+| Controller          | [`pkg/controller/v1/project`](pkg/controller/v1/project/api.go) | JSON API          |
+| Mnemosyne           | [`pkg/mnemosyne`](pkg/mnemosyne/sqlite.go)                      | Persistency Layer |
+| Design Rule Engine  | [`pkg/construction`](pkg/construction/dre.go)                   | Business Logic    |
 
-### Logging
+## Design Rule Violations
 
-  - [V levels](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-instrumentation/logging.md#what-method-to-use)
-  - https://github.com/go-logr/zapr
-  - https://github.com/go-logr/logr
-  - https://github.com/uber-go/zap
+Package [`construction`](pkg/construction/dre.go) encompasses the vast majority of business logic. It validates every GetJSON collection as well as _the splits_.
 
+| Violation Name                | Type          | Condition(s)
+| ----------------------------- | ------------- |----------------------------------------------------------|
+| DesignRuleViolationOverlapped | `Collection`  | if the polygons are overlapped                           |
+| DesignRuleViolationNotClosed  | `Collection`  | if any polygon isn't closed                              |
+| DesignRuleViolationNotPolygon | `Collection`  | if any collection has a non-polygon object               |
+| DesignRuleViolationOutOfBound | `Split`       | if _building_limits_ **doesn't** contain _height_plateaux_   |
 
 ## Progress
 
-  - [x] Gin setup
+  - [x] setup Gin
   - [x] [Structured Logging](https://learninggolang.com/it5-gin-structured-logging.html)
   - [x] `SQLite` setup
   - [x] `GeoJSON` setup
@@ -62,13 +70,13 @@ Configured **CGO** is required for [go-sqlite3](https://github.com/mattn/go-sqli
   - [x] feat(design-rule-engine): implementation
   - [x] feat: integration tests
   - [x] *** Release 0.1.0.pre1 version ****
-  - [ ] feat(controller): concurrent update
+  - [x] test: concurrent update
+  - [x] [Connect healthz to DB](https://pkg.go.dev/database/sql#example-package-OpenDBService)
+  - [x] [Texel Architecture with D2](https://app.terrastruct.com/diagrams/2073737807) or [this](https://text-to-diagram.com/)
+  - [x] docs: readme
   - [ ] Handle `ErrProjectNotFound` error
-  - [ ] Grafterm dashboard
-  - [ ] [Connect healthz to DB](https://pkg.go.dev/database/sql#example-package-OpenDBService)
-  - [ ] docs: readme
   - [ ] Prometheus Metrics
-  - [ ] [Texel Architecture with D2](https://app.terrastruct.com/diagrams/2073737807) or [this](https://text-to-diagram.com/)
+  - [ ] Grafterm dashboard
   - [ ] *** Release 0.1.0 version ****
   - [ ] test(design-rule-engine): unit tests
   - [ ] Postman
@@ -84,6 +92,19 @@ Configured **CGO** is required for [go-sqlite3](https://github.com/mattn/go-sqli
 
 ## Contribution
 
+```shell
+#  List all tasks
+task --list-all
+
+# healthz-hyperfine:
+# test-concurrency:
+# test-happy-path:
+# test-integration:
+# test-stress:
+# test-two-isles:
+# test-two-isles-hyperfine:
+```
+
 ### Before check-in the code checklist
 
   - [ ] Make sure all new source code files have the copyright header
@@ -92,22 +113,28 @@ Configured **CGO** is required for [go-sqlite3](https://github.com/mattn/go-sqli
 ## References
 
 - [MPL2](https://www.mozilla.org/en-US/MPL/headers/)
+- Logging
+  - [V levels](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-instrumentation/logging.md#what-method-to-use)
+  - https://github.com/go-logr/zapr
+  - https://github.com/go-logr/logr
+  - https://github.com/uber-go/zap
+- JSON API:
+  - [Google JSON Style Guide](https://google.github.io/styleguide/jsoncstyleguide.xml)
+  - [JSON API spec](https://github.com/json-api/json-api)
+  - https://blog.logrocket.com/documenting-go-web-apis-with-swag/
+  - https://medium.com/@isuru89/a-better-way-to-implement-http-patch-operation-in-rest-apis-721396ac82bf
 - Gin:
   - https://gin-gonic.com/docs/examples/bind-uri/
-- [Google JSON Style Guide](https://google.github.io/styleguide/jsoncstyleguide.xml)
-- [JSON API spec](https://github.com/json-api/json-api)
-- https://blog.logrocket.com/documenting-go-web-apis-with-swag/
 - Deployment
   - [Google Functions](https://cloud.google.com/functions/docs/concepts/execution-environment#functions-concepts-scopes-go)
   - [Cloud Run](https://cloud.google.com/run/)
 - [GeoJSON](https://en.wikipedia.org/wiki/GeoJSON)
-- https://medium.com/@isuru89/a-better-way-to-implement-http-patch-operation-in-rest-apis-721396ac82bf
+- [GeoJSON standard - rfc7946](https://datatracker.ietf.org/doc/html/rfc7946)
 - https://en.wikipedia.org/wiki/Design_rule_checking
-- https://en.wikipedia.org/wiki/GeoJSON
 - https://github.com/paulmach/orb/tree/master/planar
-- https://datatracker.ietf.org/doc/html/rfc7946
-- [Euclidean Geometry[(https://en.wikipedia.org/wiki/Euclidean_geometry)
+- [Euclidean Geometry](https://en.wikipedia.org/wiki/Euclidean_geometry)
   - https://en.wikipedia.org/wiki/Apeirogon
   - https://en.wikipedia.org/wiki/List_of_two-dimensional_geometric_shapes
   - https://en.wikipedia.org/wiki/Projected_coordinate_system
 - GeoJSON deviation in [orb](https://github.com/paulmach/orb/issues/45)
+- https://github.com/go-kit/kit
