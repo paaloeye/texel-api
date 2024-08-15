@@ -59,12 +59,9 @@ Configured **CGO** is required for [go-sqlite3](https://github.com/mattn/go-sqli
   - [x] [fix database is locked](https://www2.sqlite.org/cvstrac/wiki?p=DatabaseIsLocked)
   - [x] feat(mnemosyne): implement `updateObject`
   - [x] PATCH height_plateaux
-  - [?] feat(design-rule-engine): implementation
-  - [?] test(design-rule-engine): integration tests
-  - [ ] test: smoke tests
-  - [ ] chore(controller): refactoring
-  - [ ] *** Release 0.1.0.pre1 version ****
-  - [ ] test(design-rule-engine): unit tests
+  - [x] feat(design-rule-engine): implementation
+  - [x] feat: integration tests
+  - [x] *** Release 0.1.0.pre1 version ****
   - [ ] feat(controller): concurrent update
   - [ ] Handle `ErrProjectNotFound` error
   - [ ] Grafterm dashboard
@@ -73,6 +70,7 @@ Configured **CGO** is required for [go-sqlite3](https://github.com/mattn/go-sqli
   - [ ] Prometheus Metrics
   - [ ] [Texel Architecture with D2](https://app.terrastruct.com/diagrams/2073737807) or [this](https://text-to-diagram.com/)
   - [ ] *** Release 0.1.0 version ****
+  - [ ] test(design-rule-engine): unit tests
   - [ ] Postman
   - [ ] OpenAPI Specification with `Swag`
   - [ ] Database timeout via `context.Context`

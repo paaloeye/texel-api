@@ -70,10 +70,10 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 	// MARK: PATCH /building_limits
 	api.PATCH("/building_limits", func(gin *ginAPI.Context) {
 		ctx := makeUpdateContext(gin, "object-name", "building_limits")
+		log := ctx.Value(ctxKeyLogger).(logr.Logger)
 		project := ctx.Value(ctxKeyProject).(Project)
 		model := ctx.Value(ctxKeyModel).(*mnemosyne.Mnemosyne)
 		dre := ctx.Value(ctxKeyDesignRuleEngine).(*construction.DesignRuleEngine)
-		// log := ctx.Value(ctxKeyLogger).(*logr.Logger)
 
 		body, err := io.ReadAll(gin.Request.Body)
 		if ok := handleInternalServerError(ctx, err); !ok {
@@ -93,26 +93,27 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 			return
 		}
 
+		// Check design rules for splits
 		// Fetch complementary feature collection
-		// complementaryJsonData, err := model.GetHeightPlateaux(project.ID)
-		// notFound, ok := handleNotFound(context.WithValue(ctx, ctxKeyLogger, log.WithValues("object-name", "height-plateaux")), err)
-		// if !ok {
-		// 	return
-		// }
+		complementaryJsonData, err := model.GetHeightPlateaux(project.ID)
+		notFound, ok := handleNotFound(context.WithValue(ctx, ctxKeyLogger, log.WithValues("object-name", "height-plateaux")), err)
 
-		// if !notFound {
-		// 	featureCollectionComplementary, err := geojson.UnmarshalFeatureCollection([]byte(complementaryJsonData))
-		// 	if ok := handleInternalServerError(ctx, err); !ok {
-		// 		return
-		// 	}
+		if !ok {
+			return
+		}
 
-		// 	// Check design rules
-		// 	_, _, err = dre.Validate(ctx, featureCollectionRequest, featureCollectionComplementary)
-		// 	if ok := handleInternalServerError(ctx, err); !ok {
-		// 		return
-		// 	}
-		// 	// Serialize errors and warnings if any
-		// }
+		if !notFound {
+			featureCollectionComplementary, err := geojson.UnmarshalFeatureCollection([]byte(complementaryJsonData))
+			if ok := handleInternalServerError(ctx, err); !ok {
+				return
+			}
+
+			// Check design rules
+			if ok, violations := dre.ValidateSplits(featureCollectionRequest, featureCollectionComplementary); !ok {
+				handleDesignRuleViolations(ctx, violations)
+				return
+			}
+		}
 
 		// Update the model for no errors were found
 		geoJson, err := featureCollectionRequest.MarshalJSON()
@@ -161,9 +162,11 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 	// MARK: PATCH /height_plateaus
 	api.PATCH("/height_plateaus", func(gin *ginAPI.Context) {
 		ctx := makeUpdateContext(gin, "object-name", "height plateaus")
+
 		project := ctx.Value(ctxKeyProject).(Project)
 		model := ctx.Value(ctxKeyModel).(*mnemosyne.Mnemosyne)
 		dre := ctx.Value(ctxKeyDesignRuleEngine).(*construction.DesignRuleEngine)
+		log := ctx.Value(ctxKeyLogger).(logr.Logger)
 
 		body, err := io.ReadAll(gin.Request.Body)
 		if ok := handleInternalServerError(ctx, err); !ok {
@@ -181,12 +184,45 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 			return
 		}
 
+		// Check design rules for collection
 		if ok, violations := dre.ValidateCollection(featureCollectionRequest); !ok {
 			handleDesignRuleViolations(ctx, violations)
 			return
 		}
 
-		// TODO: Check design rules
+		// Check design rules for splits
+		// Fetch complementary feature collection
+		complementaryJsonData, err := model.GetBuildingLimits(project.ID)
+		notFound, ok := handleNotFound(context.WithValue(ctx, ctxKeyLogger, log.WithValues("object-name", "building-limits")), err)
+
+		if !ok {
+			return
+		}
+
+		if notFound {
+			gin.JSON(http.StatusUnprocessableEntity, ginAPI.H{
+				"message": "Building limits don't exist",
+				"error": ginAPI.H{
+					"code": http.StatusUnprocessableEntity,
+					"errors": []ginAPI.H{
+						{"reason": fmt.Sprintf("%T", GenericApiError{})},
+					},
+				},
+			})
+
+			return
+		}
+
+		featureCollectionComplementary, err := geojson.UnmarshalFeatureCollection([]byte(complementaryJsonData))
+		if ok := handleInternalServerError(ctx, err); !ok {
+			return
+		}
+
+		// Check design rules
+		if ok, violations := dre.ValidateSplits(featureCollectionComplementary, featureCollectionRequest); !ok {
+			handleDesignRuleViolations(ctx, violations)
+			return
+		}
 
 		err = model.UpdateHeightPlateaux(project.ID, string(geoJson[:]))
 		if ok := handleInternalServerError(ctx, err); !ok {

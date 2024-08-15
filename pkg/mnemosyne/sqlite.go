@@ -38,12 +38,6 @@ const (
 			FOREIGN KEY(project_id) REFERENCES projects(id)
 		);
 
-		CREATE TABLE split_building_limits (
-			project_id UUID PRIMARY KEY,
-			data JSON,
-			FOREIGN KEY(project_id) REFERENCES projects(id)
-		);
-
 		-- Magic values
 		INSERT INTO projects VALUES ("feedface-cafe-beef-feed-facecafebeef");
 	`
@@ -72,13 +66,6 @@ const (
 		-- Upsert
 		INSERT INTO height_plateaux(project_id,data) VALUES(:project_id, :data)
   		ON CONFLICT(project_id) DO UPDATE SET data=excluded.data;
-	`
-
-	getSplitBuildingLimits = `
-		SELECT data
-		FROM split_building_limits
-		WHERE project_id = :project_id
-		LIMIT 1
 	`
 )
 
@@ -136,12 +123,6 @@ func (m *Mnemosyne) GetHeightPlateaux(projectID string) (string, error) {
 
 func (m *Mnemosyne) UpdateHeightPlateaux(projectID string, data string) (err error) {
 	return m.updateObject(projectID, updateHeightPlateauxQuery, data)
-}
-
-// MARK: Split height plateaux
-
-func (m *Mnemosyne) GetSplitBuildingLimits(projectID string) (string, error) {
-	return m.getObject(projectID, getSplitBuildingLimits)
 }
 
 // MARK: Private API

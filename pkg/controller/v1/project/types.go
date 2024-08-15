@@ -9,3 +9,10 @@ package project
 type Project struct {
 	ID string `uri:"project_id" binding:"required,uuid"`
 }
+
+type GenericApiError struct {
+}
+
+func (e *GenericApiError) Error() string {
+	return "Something went wrong"
+}

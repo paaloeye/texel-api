@@ -34,6 +34,21 @@ tasks:
         # Fetch the limits
         curl {{ .CURL_ARGS }} "{{ .API_BASE_URI }}/split_building_limits" | jq .
 
+  test-two-isles:
+    set: ["e", "u", "x", "pipefail"]
+    ignore_error: true
+    cmds:
+      - |
+
+        # Load building limits
+        curl {{ .CURL_ARGS }} -X PATCH --data @testdata/two_isles/l.geojson "{{ .API_BASE_URI }}/building_limits" | jq .
+
+        # Load height plateaux
+        curl {{ .CURL_ARGS }} -X PATCH --data @testdata/two_isles/p.geojson "{{ .API_BASE_URI }}/height_plateaus" | jq .
+
+        # Fetch the limits
+        curl {{ .CURL_ARGS }} "{{ .API_BASE_URI }}/split_building_limits" | jq .
+
   test-integration:
     set: ["e", "u", "x", "pipefail"]
     ignore_error: true # design rule violations suppose to be failing
@@ -46,22 +61,13 @@ tasks:
         # Malformed JSON
         curl -v --data '\{wat"data": \{\}\}' -X PATCH "{{ .API_BASE_URI }}/building_limits" | jq .
       - task: test-integration-dre-splits
+      - task: test-integration-empty-building-limits
 
-
-  # Make sure we don't crash and burn due to something small and stupid
-  # test-smoke:
-  #   set: ["e", "u", "x"]
-
-  # Test a few API calls with
+  # Test a few API calls with hyperfine
   test-stress:
     set: ["e", "u", "x", "pipefail"]
     cmds:
-      # PATCH
-      - hyperfine "curl -v --data @testdata/happypath/building_limits.geojson -X PATCH '{{ .API_BASE_URI }}/building_limits' | jq ."
-
-      # GET
-      - hyperfine "curl -v '{{ .API_BASE_URI }}/building_limits' | jq ."
-
+      - hyperfine -m 100000 "task test-two-isles"
 
   test-integration-dre-building-limits-overlapped:
     set: ["e", "u", "x", "pipefail"]
@@ -86,11 +92,30 @@ tasks:
 
   test-integration-dre-splits:
     set: ["e", "u", "x", "pipefail"]
+    ignore_error: true
     cmds:
       - |
 
         # Load building limits
-        curl {{ .CURL_ARGS }} -X PATCH --data @testdata/dre/splits/err_not_polygon.geojson "{{ .API_BASE_URI }}/building_limits" | jq .
+        curl {{ .CURL_ARGS }} -X PATCH --data @testdata/dre/splits/err_out_of_bound.building_limits.geojson "{{ .API_BASE_URI }}/building_limits" | jq .
+
+        # Load height plateaux
+        curl {{ .CURL_ARGS }} -X PATCH --data @testdata/dre/splits/err_out_of_bound.height_plateaux.geojson "{{ .API_BASE_URI }}/height_plateaus" | jq .
+
+        # Fetch the limits
+        curl {{ .CURL_ARGS }} "{{ .API_BASE_URI }}/split_building_limits" | jq .
+
+  test-integration-empty-building-limits:
+    set: ["e", "u", "x", "pipefail"]
+    ignore_error: true
+    cmds:
+      - |
+
+        # Load height plateaux
+        curl {{ .CURL_ARGS }} -X PATCH --data @testdata/dre/splits/err_out_of_bound.height_plateaux.geojson "{{ .API_BASE_URI }}/height_plateaus" | jq .
+
+        # Fetch the limits
+        curl {{ .CURL_ARGS }} "{{ .API_BASE_URI }}/split_building_limits" | jq .
 
   # test-integration-dre-building-limits-self-intersection:
   #   set: ["e", "u", "x", "pipefail"]
