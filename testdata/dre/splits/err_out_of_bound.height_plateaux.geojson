@@ -1,0 +1,81 @@
+{
+        "type": "FeatureCollection",
+        "features": [
+                {
+                        "type": "Feature",
+                        "properties": {
+                                "stroke": "#555555",
+                                "stroke-width": 2,
+                                "stroke-opacity": 1,
+                                "fill": "#555555",
+                                "fill-opacity": 0.5,
+                                "elevation": "7"
+                        },
+                        "geometry": {
+                                "type": "Polygon",
+                                "coordinates": [
+                                        [
+                                                [
+                                                        4.748139,
+                                                        53.039993
+                                                ],
+                                                [
+                                                        4.785567,
+                                                        53.026573
+                                                ],
+                                                [
+                                                        4.810289,
+                                                        53.045773
+                                                ],
+                                                [
+                                                        4.767025,
+                                                        53.066201
+                                                ],
+                                                [
+                                                        4.748139,
+                                                        53.039993
+                                                ]
+                                        ]
+                                ]
+                        }
+                },
+                {
+                        "type": "Feature",
+                        "properties": {
+                                "stroke": "#555555",
+                                "stroke-width": 2,
+                                "stroke-opacity": 1,
+                                "fill": "#555555",
+                                "fill-opacity": 0.5,
+                                "elevation": "11"
+                        },
+                        "geometry": {
+                                "type": "Polygon",
+                                "coordinates": [
+                                        [
+                                                [
+                                                        4.782756,
+                                                        53.078198
+                                                ],
+                                                [
+                                                        4.827909,
+                                                        53.056847
+                                                ],
+                                                [
+                                                        4.847138,
+                                                        53.074589
+                                                ],
+                                                [
+                                                        4.803187,
+                                                        53.097477
+                                                ],
+                                                [
+                                                        4.782756,
+                                                        53.078198
+                                                ]
+                                        ]
+                                ]
+                        }
+                }
+        ]
+}

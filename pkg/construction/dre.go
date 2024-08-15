@@ -16,13 +16,17 @@ import (
 	"github.com/paulmach/orb/planar"
 )
 
+type DesignRuleViolation int
+
 //go:generate stringer -type=DesignRuleViolation -output=zz_generated_dre.stringer.go
 const (
-	DesignRuleViolationPOfBound DesignRuleViolation = iota
-	DesignRuleViolationPConflict
-	DesignRuleViolationPCoverage // Warning
+	// Collection
+	DesignRuleViolationOverlapped DesignRuleViolation = iota
+	DesignRuleViolationNotClosed
+	DesignRuleViolationNotPolygon
 
-	DesignRuleViolationOverlapped
+	// Splits
+	DesignRuleViolationOutOfBound
 )
 
 var (
@@ -35,7 +39,14 @@ func init() {
 			polygons := []orb.Polygon{}
 
 			for _, f := range featureCollection.Features {
-				polygons = append(polygons, f.Geometry.(orb.Polygon))
+				p, ok := f.Geometry.(orb.Polygon)
+
+				// Skip all elements other than Polygon because those are being taken care off by NotPolygon rule
+				if !ok {
+					continue
+				}
+
+				polygons = append(polygons, p)
 			}
 
 			for i := 0; i < len(polygons); i++ {
@@ -49,15 +60,36 @@ func init() {
 			return true
 		})
 
-}
+	designRuleRegister(DesignRuleViolationNotClosed, func(featureCollection *geojson.FeatureCollection) (ok bool) {
+		for _, f := range featureCollection.Features {
+			p, ok := f.Geometry.(orb.Polygon)
 
-type DesignRuleViolation int
+			// Skip all elements other than Polygon because those are being taken care off by NotPolygon rule
+			if !ok {
+				continue
+			}
+
+			if closed := polygonClosed(p); !closed {
+				return false
+			}
+		}
+
+		return true
+	})
+
+	designRuleRegister(DesignRuleViolationNotPolygon, func(featureCollection *geojson.FeatureCollection) (ok bool) {
+		for _, f := range featureCollection.Features {
+			if f.Geometry.GeoJSONType() != "Polygon" {
+				return false
+			}
+		}
+
+		return true
+	})
+}
 
 type DesignRuleEngine struct {
 }
-
-// type DesignRuleViolation struct {
-// }
 
 func NewDesignRuleEngine() *DesignRuleEngine {
 	return &DesignRuleEngine{}
@@ -90,6 +122,16 @@ func designRuleRegister(rule DesignRuleViolation, ruleFunc DesignRuleFuncOne) {
 	rules[rule] = ruleFunc
 }
 
+func polygonClosed(polygon orb.Polygon) bool {
+	for _, ring := range polygon {
+		if !ring.Closed() {
+			return false
+		}
+	}
+
+	return true
+}
+
 func polygonsOverlapped(polygonA, polygonB orb.Polygon) bool {
 	// Check if any part of polygonA intersects with polygonB
 	clipped := clip.Polygon(polygonB.Bound(), polygonA.Clone())
@@ -109,6 +151,3 @@ func polygonsOverlapped(polygonA, polygonB orb.Polygon) bool {
 
 	return false
 }
-
-// func (dre *DesignRuleEngine) Validate(
-// }

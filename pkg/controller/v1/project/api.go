@@ -8,6 +8,9 @@ package project
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -79,6 +82,7 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 
 		// Make sure it's a well-formatted GeoJSON Object
 		featureCollectionRequest, err := geojson.UnmarshalFeatureCollection(body)
+
 		if ok := handleInternalServerError(ctx, err); !ok {
 			return
 		}
@@ -205,7 +209,7 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 		ctx = context.WithValue(ctx, ctxKeyLogger, log)
 		ctx = context.WithValue(ctx, ctxKeyGin, gin)
 
-		split_building_limits, err := model.GetSplitBuildingLimits(project.ID)
+		split_building_limits, err := model.GetHeightPlateaux(project.ID)
 
 		if notFound, ok := handleNotFound(ctx, err); !ok || notFound {
 			return
@@ -233,11 +237,17 @@ func Register(ginRouter *ginAPI.RouterGroup) {
  * @param err The error that occurred.
  * @return A boolean indicating whether the error was handled or not.
  */
-func handleInternalServerError(ctx context.Context, err error) bool {
+func handleInternalServerError(ctx context.Context, err error) (ok bool) {
 	log := ctx.Value(ctxKeyLogger).(logr.Logger)
 	gin := ctx.Value(ctxKeyGin).(*ginAPI.Context)
 
 	if err != nil {
+		// Take care of all probable errors first
+		if processed := handleMallformedJSON(ctx, err); processed {
+			return
+		}
+
+		// Deal with *unknown*
 		log.Error(err, "failed to get the model")
 		gin.JSON(http.StatusInternalServerError, ginAPI.H{
 			"error": ginAPI.H{
@@ -296,6 +306,29 @@ func handleDesignRuleViolations(ctx context.Context, violations []error) {
 		},
 	})
 
+}
+
+func handleMallformedJSON(ctx context.Context, err error) (processed bool) {
+	var jsonError *json.SyntaxError
+	gin := ctx.Value(ctxKeyGin).(*ginAPI.Context)
+
+	if errors.As(err, &jsonError) {
+		// TODO: jsonError.Offset to show where the error is
+
+		gin.JSON(http.StatusBadRequest, ginAPI.H{
+			"message": "Malformed JSON document is provided",
+			"error": ginAPI.H{
+				"code": http.StatusBadRequest,
+				"errors": []ginAPI.H{
+					{"reason": fmt.Sprintf("%T", *jsonError)},
+				},
+			},
+		})
+
+		return true
+	}
+
+	return false
 }
 
 // MARK: Middlewares
