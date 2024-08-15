@@ -8,15 +8,15 @@ func _() {
 	// An "invalid array index" compiler error signifies that the constant values have changed.
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
-	_ = x[DesignRuleViolationPOfBound-0]
-	_ = x[DesignRuleViolationPConflict-1]
-	_ = x[DesignRuleViolationPCoverage-2]
-	_ = x[DesignRuleViolationOverlapped-3]
+	_ = x[DesignRuleViolationOverlapped-0]
+	_ = x[DesignRuleViolationNotClosed-1]
+	_ = x[DesignRuleViolationNotPolygon-2]
+	_ = x[DesignRuleViolationOutOfBound-3]
 }
 
-const _DesignRuleViolation_name = "DesignRuleViolationPOfBoundDesignRuleViolationPConflictDesignRuleViolationPCoverageDesignRuleViolationOverlapped"
+const _DesignRuleViolation_name = "DesignRuleViolationOverlappedDesignRuleViolationNotClosedDesignRuleViolationNotPolygonDesignRuleViolationOutOfBound"
 
-var _DesignRuleViolation_index = [...]uint8{0, 27, 55, 83, 112}
+var _DesignRuleViolation_index = [...]uint8{0, 29, 57, 86, 115}
 
 func (i DesignRuleViolation) String() string {
 	if i < 0 || i >= DesignRuleViolation(len(_DesignRuleViolation_index)-1) {

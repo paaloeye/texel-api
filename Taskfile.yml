@@ -8,33 +8,11 @@ vars:
 
 tasks:
   run:
-    set: ["e", "u", "x"]
-    cmds:
-      - go mod tidy
-      - go generate
-      - go run -race cmd/main.go
-
-  test-integration:
-    set: ["e", "u", "x"]
-    cmds:
-      - |
-
-        # TODO: Fix interpolation error
-        curl -v --data '\{wat"data": \{\}\}' -X PATCH "{{ .API_BASE_URI }}/building_limits" | jq .
-
-  # Make sure we don't crash and burn due to something small and stupid
-  # test-smoke:
-  #   set: ["e", "u", "x"]
-
-  # Test a few API calls with
-  test-stress:
     set: ["e", "u", "x", "pipefail"]
     cmds:
-      # PATCH
-      - hyperfine "curl -v --data @testdata/happypath/building_limits.geojson -X PATCH '{{ .API_BASE_URI }}/building_limits' | jq ."
-
-      # GET
-      - hyperfine "curl -v '{{ .API_BASE_URI }}/building_limits' | jq ."
+      - go mod tidy
+      - go generate ./...
+      - go run -race cmd/main.go
 
   # La Vie En Rose mode
   test-happy-path:
@@ -56,12 +34,63 @@ tasks:
         # Fetch the limits
         curl {{ .CURL_ARGS }} "{{ .API_BASE_URI }}/split_building_limits" | jq .
 
+  test-integration:
+    set: ["e", "u", "x", "pipefail"]
+    ignore_error: true # design rule violations suppose to be failing
+    cmds:
+      - task: test-integration-dre-building-limits-overlapped
+      - task: test-integration-dre-building-limits-not-closed
+      - task: test-integration-dre-building-limits-not-polygon
+      - |
+
+        # Malformed JSON
+        curl -v --data '\{wat"data": \{\}\}' -X PATCH "{{ .API_BASE_URI }}/building_limits" | jq .
+      - task: test-integration-dre-splits
+
+
+  # Make sure we don't crash and burn due to something small and stupid
+  # test-smoke:
+  #   set: ["e", "u", "x"]
+
+  # Test a few API calls with
+  test-stress:
+    set: ["e", "u", "x", "pipefail"]
+    cmds:
+      # PATCH
+      - hyperfine "curl -v --data @testdata/happypath/building_limits.geojson -X PATCH '{{ .API_BASE_URI }}/building_limits' | jq ."
+
+      # GET
+      - hyperfine "curl -v '{{ .API_BASE_URI }}/building_limits' | jq ."
+
+
   test-integration-dre-building-limits-overlapped:
     set: ["e", "u", "x", "pipefail"]
     cmds:
       - |
 
         curl {{ .CURL_ARGS }} -X PATCH --data @testdata/dre/collection/err_overlapped.geojson "{{ .API_BASE_URI }}/building_limits" | jq .
+
+  test-integration-dre-building-limits-not-closed:
+    set: ["e", "u", "x", "pipefail"]
+    cmds:
+      - |
+
+        curl {{ .CURL_ARGS }} -X PATCH --data @testdata/dre/collection/err_not_closed.geojson "{{ .API_BASE_URI }}/building_limits" | jq .
+
+  test-integration-dre-building-limits-not-polygon:
+    set: ["e", "u", "x", "pipefail"]
+    cmds:
+      - |
+
+        curl {{ .CURL_ARGS }} -X PATCH --data @testdata/dre/collection/err_not_polygon.geojson "{{ .API_BASE_URI }}/building_limits" | jq .
+
+  test-integration-dre-splits:
+    set: ["e", "u", "x", "pipefail"]
+    cmds:
+      - |
+
+        # Load building limits
+        curl {{ .CURL_ARGS }} -X PATCH --data @testdata/dre/splits/err_not_polygon.geojson "{{ .API_BASE_URI }}/building_limits" | jq .
 
   # test-integration-dre-building-limits-self-intersection:
   #   set: ["e", "u", "x", "pipefail"]

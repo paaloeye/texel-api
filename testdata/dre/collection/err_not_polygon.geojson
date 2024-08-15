@@ -1,0 +1,57 @@
+{
+        "type": "FeatureCollection",
+        "features": [
+                {
+                        "type": "Feature",
+                        "properties": {},
+                        "geometry": {
+                                "type": "LineString",
+                                "coordinates": [
+                                        [
+                                                4.74513,
+                                                53.061095
+                                        ],
+                                        [
+                                                4.802793,
+                                                53.094507
+                                        ],
+                                        [
+                                                4.812403,
+                                                53.084197
+                                        ]
+                                ]
+                        }
+                },
+                {
+                        "type": "Feature",
+                        "properties": {},
+                        "geometry": {
+                                "type": "Polygon",
+                                "coordinates": [
+                                        [
+                                                [
+                                                        4.754252,
+                                                        53.038428
+                                                ],
+                                                [
+                                                        4.754252,
+                                                        53.060784
+                                                ],
+                                                [
+                                                        4.811683,
+                                                        53.060784
+                                                ],
+                                                [
+                                                        4.811683,
+                                                        53.038428
+                                                ],
+                                                [
+                                                        4.754252,
+                                                        53.038428
+                                                ]
+                                        ]
+                                ]
+                        }
+                }
+        ]
+}

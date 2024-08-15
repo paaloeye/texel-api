@@ -107,7 +107,9 @@ Configured **CGO** is required for [go-sqlite3](https://github.com/mattn/go-sqli
 - https://en.wikipedia.org/wiki/Design_rule_checking
 - https://en.wikipedia.org/wiki/GeoJSON
 - https://github.com/paulmach/orb/tree/master/planar
+- https://datatracker.ietf.org/doc/html/rfc7946
 - [Euclidean Geometry[(https://en.wikipedia.org/wiki/Euclidean_geometry)
   - https://en.wikipedia.org/wiki/Apeirogon
   - https://en.wikipedia.org/wiki/List_of_two-dimensional_geometric_shapes
   - https://en.wikipedia.org/wiki/Projected_coordinate_system
+- GeoJSON deviation in [orb](https://github.com/paulmach/orb/issues/45)
