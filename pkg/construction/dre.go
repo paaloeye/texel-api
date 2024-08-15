@@ -29,12 +29,16 @@ const (
 	DesignRuleViolationOutOfBound
 )
 
+type DesignRuleFuncOne func(featureCollection *geojson.FeatureCollection) (ok bool)
+type DesignRuleFuncMany func(featureCollectionA, featureCollectionB *geojson.FeatureCollection) (ok bool)
+
 var (
-	rules map[DesignRuleViolation]DesignRuleFuncOne = map[DesignRuleViolation]DesignRuleFuncOne{}
+	rulesCollection map[DesignRuleViolation]DesignRuleFuncOne  = map[DesignRuleViolation]DesignRuleFuncOne{}
+	rulesSplits     map[DesignRuleViolation]DesignRuleFuncMany = map[DesignRuleViolation]DesignRuleFuncMany{}
 )
 
 func init() {
-	designRuleRegister(DesignRuleViolationOverlapped,
+	designRuleRegisterCollection(DesignRuleViolationOverlapped,
 		func(featureCollection *geojson.FeatureCollection) (ok bool) {
 			polygons := []orb.Polygon{}
 
@@ -60,7 +64,7 @@ func init() {
 			return true
 		})
 
-	designRuleRegister(DesignRuleViolationNotClosed, func(featureCollection *geojson.FeatureCollection) (ok bool) {
+	designRuleRegisterCollection(DesignRuleViolationNotClosed, func(featureCollection *geojson.FeatureCollection) (ok bool) {
 		for _, f := range featureCollection.Features {
 			p, ok := f.Geometry.(orb.Polygon)
 
@@ -77,11 +81,46 @@ func init() {
 		return true
 	})
 
-	designRuleRegister(DesignRuleViolationNotPolygon, func(featureCollection *geojson.FeatureCollection) (ok bool) {
+	designRuleRegisterCollection(DesignRuleViolationNotPolygon, func(featureCollection *geojson.FeatureCollection) (ok bool) {
 		for _, f := range featureCollection.Features {
 			if f.Geometry.GeoJSONType() != "Polygon" {
 				return false
 			}
+		}
+
+		return true
+	})
+
+	designRuleRegisterSplits(DesignRuleViolationOutOfBound, func(featureCollectionL, featureCollectionP *geojson.FeatureCollection) (ook bool) {
+		for _, f := range featureCollectionP.Features {
+			outOfBound := true
+			pPlateau, ok := f.Geometry.(orb.Polygon)
+
+			// Skip all elements other than Polygon because those are being taken care off by NotPolygon rule
+			if !ok {
+				continue
+			}
+
+			for _, f := range featureCollectionL.Features {
+				pLimit, ok := f.Geometry.(orb.Polygon)
+
+				// Skip all elements other than Polygon because those are being taken care off by NotPolygon rule
+				if !ok {
+					continue
+				}
+
+				if planar.PolygonContains(pLimit, pPlateau.Bound().Min) && planar.PolygonContains(pLimit, pPlateau.Bound().Max) {
+					// Found the right pLimit
+					outOfBound = false
+					break
+				}
+
+			}
+
+			if outOfBound {
+				return false
+			}
+
 		}
 
 		return true
@@ -95,12 +134,24 @@ func NewDesignRuleEngine() *DesignRuleEngine {
 	return &DesignRuleEngine{}
 }
 
-type DesignRuleFuncOne func(featureCollection *geojson.FeatureCollection) (ok bool)
-type DesignRuleFuncMany func(featureCollectionA, featureCollectionB *geojson.FeatureCollection) (ok bool)
-
 func (dre *DesignRuleEngine) ValidateCollection(featureCollection *geojson.FeatureCollection) (ok bool, violations []error) {
-	for rule, ruleFunc := range rules {
+	for rule, ruleFunc := range rulesCollection {
 		if ok := ruleFunc(featureCollection); !ok {
+			violations = append(violations, errors.New(rule.String()))
+		}
+	}
+
+	if len(violations) != 0 {
+		ok = false
+		return
+	}
+
+	return true, nil
+}
+
+func (dre *DesignRuleEngine) ValidateSplits(featureCollectionL, featureCollectionP *geojson.FeatureCollection) (ok bool, violations []error) {
+	for rule, ruleFunc := range rulesSplits {
+		if ok := ruleFunc(featureCollectionL, featureCollectionP); !ok {
 			violations = append(violations, errors.New(rule.String()))
 		}
 	}
@@ -115,11 +166,18 @@ func (dre *DesignRuleEngine) ValidateCollection(featureCollection *geojson.Featu
 
 // MARK: Private API
 
-func designRuleRegister(rule DesignRuleViolation, ruleFunc DesignRuleFuncOne) {
-	if _, ok := rules[rule]; ok {
+func designRuleRegisterCollection(rule DesignRuleViolation, ruleFunc DesignRuleFuncOne) {
+	if _, ok := rulesCollection[rule]; ok {
 		panic(fmt.Errorf("%+v is already registered", rule))
 	}
-	rules[rule] = ruleFunc
+	rulesCollection[rule] = ruleFunc
+}
+
+func designRuleRegisterSplits(rule DesignRuleViolation, ruleFunc DesignRuleFuncMany) {
+	if _, ok := rulesCollection[rule]; ok {
+		panic(fmt.Errorf("%+v is already registered", rule))
+	}
+	rulesSplits[rule] = ruleFunc
 }
 
 func polygonClosed(polygon orb.Polygon) bool {
