@@ -1,0 +1,83 @@
+{
+        "type": "FeatureCollection",
+        "features": [
+                {
+                        "type": "Feature",
+                        "properties": {
+                                "stroke": "#550000",
+                                "stroke-width": 2,
+                                "stroke-opacity": 1,
+                                "fill": "#550000",
+                                "fill-opacity": 0.5
+                        },
+                        "geometry": {
+                                "type": "Polygon",
+                                "coordinates": [
+                                        [
+                                                [
+                                                        4.743058,
+                                                        53.026542
+                                                ],
+                                                [
+                                                        4.753182,
+                                                        53.048641
+                                                ],
+                                                [
+                                                        4.798314,
+                                                        53.04255
+                                                ],
+                                                [
+                                                        4.789219,
+                                                        53.021378
+                                                ],
+                                                [
+                                                        4.743058,
+                                                        53.026542
+                                                ]
+                                        ]
+                                ]
+                        }
+                },
+                {
+                        "type": "Feature",
+                        "properties": {
+                                "stroke": "#555555",
+                                "stroke-width": 2,
+                                "stroke-opacity": 1,
+                                "fill": "#ff0000",
+                                "fill-opacity": 0.5
+                        },
+                        "geometry": {
+                                "type": "Polygon",
+                                "coordinates": [
+                                        [
+                                                [
+                                                        4.769578,
+                                                        53.039998
+                                                ],
+                                                [
+                                                        4.793946,
+                                                        53.065805
+                                                ],
+                                                [
+                                                        4.834101,
+                                                        53.055484
+                                                ],
+                                                [
+                                                        4.813165,
+                                                        53.032976
+                                                ],
+                                                [
+                                                        4.78262,
+                                                        53.031736
+                                                ],
+                                                [
+                                                        4.769578,
+                                                        53.039998
+                                                ]
+                                        ]
+                                ]
+                        }
+                }
+        ]
+}

@@ -159,6 +159,7 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 		ctx := makeUpdateContext(gin, "object-name", "height plateaus")
 		project := ctx.Value(ctxKeyProject).(Project)
 		model := ctx.Value(ctxKeyModel).(*mnemosyne.Mnemosyne)
+		dre := ctx.Value(ctxKeyDesignRuleEngine).(*construction.DesignRuleEngine)
 
 		body, err := io.ReadAll(gin.Request.Body)
 		if ok := handleInternalServerError(ctx, err); !ok {
@@ -166,13 +167,18 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 		}
 
 		// Make sure it's a well-formatted GeoJSON Object
-		geoJsonBody, err := geojson.UnmarshalFeatureCollection(body)
+		featureCollectionRequest, err := geojson.UnmarshalFeatureCollection(body)
 		if ok := handleInternalServerError(ctx, err); !ok {
 			return
 		}
 
-		geoJson, err := geoJsonBody.MarshalJSON()
+		geoJson, err := featureCollectionRequest.MarshalJSON()
 		if ok := handleInternalServerError(ctx, err); !ok {
+			return
+		}
+
+		if ok, violations := dre.ValidateCollection(featureCollectionRequest); !ok {
+			handleDesignRuleViolations(ctx, violations)
 			return
 		}
 
@@ -184,11 +190,11 @@ func Register(ginRouter *ginAPI.RouterGroup) {
 		}
 
 		gin.JSON(http.StatusOK, ginAPI.H{
-			"data": *geoJsonBody,
+			"data": *featureCollectionRequest,
 		})
 	})
 
-	// MARK: DELETE /height_plateaus
+	// MARK: GET /height_plateaus
 	api.GET("/split_building_limits", func(gin *ginAPI.Context) {
 		log := logger.FromContext(gin)
 		project := gin.MustGet("project").(Project)
@@ -283,6 +289,7 @@ func handleDesignRuleViolations(ctx context.Context, violations []error) {
 	}
 
 	gin.JSON(http.StatusUnprocessableEntity, ginAPI.H{
+		"message": "One or more design rules are violated",
 		"error": ginAPI.H{
 			"code":   http.StatusUnprocessableEntity,
 			"errors": errors,
