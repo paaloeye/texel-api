@@ -1,6 +1,6 @@
 # Texel
 
-**Texel** is an **API** for accessing geospacial information written in Go. It provides an extensive **Design Rule Engine** for validating GeoJSON collections.
+**Texel** is an **API** for accessing geospatial information written in Go. It provides an extensive **Design Rule Engine** for validating GeoJSON collections.
 
 ## Quickstart
 
@@ -31,7 +31,7 @@ Configured **CGO** is required for [go-sqlite3](https://github.com/mattn/go-sqli
 
 <!-- ![Texel Architecture](docs/images/arch.svg) -->
 <div align="center">
-  <img src="docs/images/arch.svg" width="400px" />
+  <img src="docs/images/arch.svg" width="700px" />
 </div>
 
 ### Components
@@ -46,12 +46,12 @@ Configured **CGO** is required for [go-sqlite3](https://github.com/mattn/go-sqli
 
 Package [`construction`](pkg/construction/dre.go) encompasses the vast majority of business logic. It validates every GetJSON collection as well as _the splits_.
 
-| Violation Name                | Type          | Condition(s)
-| ----------------------------- | ------------- |----------------------------------------------------------|
-| DesignRuleViolationOverlapped | `Collection`  | if the polygons are overlapped                           |
-| DesignRuleViolationNotClosed  | `Collection`  | if any polygon isn't closed                              |
-| DesignRuleViolationNotPolygon | `Collection`  | if any collection has a non-polygon object               |
-| DesignRuleViolationOutOfBound | `Split`       | if _building_limits_ **doesn't** contain _height_plateaux_   |
+| Violation Name                  | Type          | Condition(s)
+| ------------------------------- | ------------- |----------------------------------------------------------|
+| `DesignRuleViolationOverlapped` | `Collection`  | if the polygons are overlapped                           |
+| `DesignRuleViolationNotClosed`  | `Collection`  | if any polygon isn't closed                              |
+| `DesignRuleViolationNotPolygon` | `Collection`  | if any collection has a non-polygon object               |
+| `DesignRuleViolationOutOfBound` | `Split`       | if _building_limits_ **doesn't** contain _height_plateaux_   |
 
 ## Progress
 
