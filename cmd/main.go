@@ -6,7 +6,7 @@
 
 package main
 
-import "github.com/pbrit/texel-api/pkg/app"
+import "github.com/paaloeye/texel-api/pkg/app"
 
 func main() {
 	app.ConfigureAppAndRun()

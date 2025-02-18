@@ -16,9 +16,9 @@ import (
 
 	ginAPI "github.com/gin-gonic/gin"
 	"github.com/go-logr/logr"
-	"github.com/pbrit/texel-api/pkg/construction"
-	"github.com/pbrit/texel-api/pkg/logger"
-	"github.com/pbrit/texel-api/pkg/mnemosyne"
+	"github.com/paaloeye/texel-api/pkg/construction"
+	"github.com/paaloeye/texel-api/pkg/logger"
+	"github.com/paaloeye/texel-api/pkg/mnemosyne"
 
 	"github.com/paulmach/orb/geojson"
 )

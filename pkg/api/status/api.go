@@ -12,7 +12,7 @@ import (
 	"time"
 
 	ginAPI "github.com/gin-gonic/gin"
-	"github.com/pbrit/texel-api/pkg/mnemosyne"
+	"github.com/paaloeye/texel-api/pkg/mnemosyne"
 )
 
 func Register(ginRouter *ginAPI.RouterGroup) {

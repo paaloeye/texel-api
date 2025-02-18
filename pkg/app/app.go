@@ -12,11 +12,11 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/pbrit/texel-api/pkg/api/prometheus"
-	"github.com/pbrit/texel-api/pkg/api/status"
-	projectControllerV1 "github.com/pbrit/texel-api/pkg/controller/v1/project"
-	"github.com/pbrit/texel-api/pkg/middleware"
-	"github.com/pbrit/texel-api/pkg/mnemosyne"
+	"github.com/paaloeye/texel-api/pkg/api/prometheus"
+	"github.com/paaloeye/texel-api/pkg/api/status"
+	projectControllerV1 "github.com/paaloeye/texel-api/pkg/controller/v1/project"
+	"github.com/paaloeye/texel-api/pkg/middleware"
+	"github.com/paaloeye/texel-api/pkg/mnemosyne"
 )
 
 type App struct {

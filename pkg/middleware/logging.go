@@ -12,7 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-logr/zapr"
-	"github.com/pbrit/texel-api/pkg/errors"
+	"github.com/paaloeye/texel-api/pkg/errors"
 	"go.uber.org/zap"
 )
 

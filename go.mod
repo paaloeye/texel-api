@@ -1,4 +1,4 @@
-module github.com/pbrit/texel-api
+module github.com/paaloeye/texel-api
 
 go 1.21
 
