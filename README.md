@@ -1,6 +1,7 @@
 # Texel
 
-**Texel** is an **API** for accessing geospatial information written in Go. It provides an extensive **Design Rule Engine** for validating GeoJSON collections.
+**Texel** is a high-performance **API** for accessing and validating geospatial information, written in Go.
+It provides an extensive **Design Rule Engine** for validating GeoJSON collections with a focus on correctness and performance.
 
 ## Quickstart
 
@@ -44,7 +45,8 @@ Configured **CGO** is required for [go-sqlite3](https://github.com/mattn/go-sqli
 
 ## Design Rule Violations
 
-Package [`construction`](pkg/construction/dre.go) encompasses the vast majority of business logic. It validates every GetJSON collection as well as _the splits_.
+Package [`construction`](pkg/construction/dre.go) encompasses the vast majority of business logic.
+It validates every GetJSON collection as well as _the splits_.
 
 | Violation Name                  | Type          | Condition(s)
 | ------------------------------- | ------------- |----------------------------------------------------------|
