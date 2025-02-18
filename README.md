@@ -138,3 +138,8 @@ task --list-all
   - https://en.wikipedia.org/wiki/Projected_coordinate_system
 - GeoJSON deviation in [orb](https://github.com/paulmach/orb/issues/45)
 - https://github.com/go-kit/kit
+
+## Licence
+
+Licensed under the [Mozilla Public License 2.0 (MPL-2.0)](https://www.mozilla.org/en-US/MPL/2.0/).
+See [LICENCE](LICENSE.md) for details and [legal TL;DR](https://www.tldrlegal.com/license/mozilla-public-license-2-0-mpl-2).
